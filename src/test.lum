@@ -1,3 +1,7 @@
+        PRINT(TO_STRING(true and true))
+        PRINT(TO_STRING(true and false))
+        PRINT(TO_STRING(false and false))
 
-
-def t = nil
+        PRINT(TO_STRING(true or false))
+        PRINT(TO_STRING(true or false))
+        PRINT(TO_STRING(false or false))

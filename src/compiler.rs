@@ -151,9 +151,10 @@ impl Compiler {
                 self.code.push(OpCode::PushBool(*value));
                 Some(Type::Bool)
             }
-            // Node::Nil => {
-            //
-            // },
+            Node::Nil => {
+                self.code.push(OpCode::PushNil);
+                None
+            },
             Node::GetVar(name) => {
                 let local = self.get_local(&name);
                 let pos = local.stack_pos;
@@ -229,8 +230,8 @@ impl Compiler {
                         return_kind: f.return_kind.clone(),
                     };
                     funcs.push(cf);
-                    self.end_fun();
                     self.code.push(OpCode::Return(false));
+                    self.end_fun();
                 }
                 let end = self.code.len();
                 if let OpCode::Jump(ref mut target) = self.code[jump] {
@@ -251,10 +252,16 @@ impl Compiler {
             Node::Reassign { name, expr } => {
                 let local = self.get_local(&name);
                 let kind = self.compile(expr);
-                if local.kind != kind.expect("Cant be none") {
+                if kind.is_some_and(|k| k != local.kind) {
+                // if local.kind != kind.expect("Cant be none") {
                     panic!("trying to reassign with a different type");
                 }
                 self.code.push(OpCode::SetLocal(local.stack_pos));
+                None
+            }
+            Node::Pop {expr} => {
+                self.compile(expr);
+                self.code.push(OpCode::Pop);
                 None
             }
             // TODO: Theres 3 different calls:

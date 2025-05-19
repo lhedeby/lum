@@ -174,3 +174,33 @@ fn class_return() {
     let expected = "2\n";
     test_code(code, expected);
 }
+
+#[test]
+fn fib() {
+    let code = r#"
+        class fib(int curr, int prev) {
+            next() int {
+                def res = @prev + @curr
+                @prev = @curr
+                @curr = res
+                return @curr
+            }
+        }
+
+        def f = fib(0, 1)
+
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+        PRINT(TO_STRING(f.next()))
+    "#;
+    let expected = "1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n";
+    test_code(code, expected);
+}

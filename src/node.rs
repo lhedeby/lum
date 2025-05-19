@@ -43,6 +43,9 @@ pub enum Node {
         args: Vec<Node>,
         lhs: Option<Box<Node>>,
     },
+    Pop {
+        expr: Box<Node>
+    },
     EqualEqual {
         lhs: Box<Node>,
         rhs: Box<Node>,
@@ -156,6 +159,11 @@ impl Node {
             Node::GetVar(name) => println!("GetVar({})", name),
             Node::Def { name, expr } => {
                 println!("Def: {}", name);
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                expr.pretty_print(&new_indent, true);
+            }
+            Node::Pop { expr } => {
+                println!("Pop");
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 expr.pretty_print(&new_indent, true);
             }

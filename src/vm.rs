@@ -25,6 +25,7 @@ enum Value {
     String(usize),
     List(usize),
     Instance(usize),
+    Nil,
 }
 
 impl Vm {
@@ -44,8 +45,8 @@ impl Vm {
         let mut stack: Vec<Value> = Vec::with_capacity(64);
 
         while ip < self.code.len() {
-            // println!("stack: {:?}", stack);
-            // println!("instruction: {:?}", self.code[ip]);
+            println!("stack: {:?}", stack);
+            println!("instruction: {:?}", self.code[ip]);
             match self.code[ip] {
                 OpCode::PushInt(v) => {
                     stack.push(Value::Int(v));
@@ -126,12 +127,17 @@ impl Vm {
                     stack.push(Value::String(s));
                     ip += 1;
                 }
+                OpCode::PushNil => {
+                    stack.push(Value::Nil);
+                    ip += 1;
+                }
                 OpCode::Native(n) => {
                     match n {
                         // PRINT
                         0 => match stack.pop().unwrap() {
                             Value::String(s) => {
                                 writeln!(out, "{}", self.strings[s]).unwrap();
+                                stack.push(Value::Nil)
                             }
                             _ => panic!("cant print value"),
                         },
@@ -210,7 +216,7 @@ impl Vm {
                         }
                         ip = call_frame.return_pos;
                         stack.push(value);
-                    },
+                    }
                     false => {
                         let call_frame = self
                             .call_stack
@@ -351,6 +357,7 @@ impl Vm {
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
+            Value::Nil => format!("nil"),
         }
     }
 }

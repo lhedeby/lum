@@ -48,7 +48,13 @@ impl Parser<'_> {
                 TokenKind::Def => self.def(),
                 TokenKind::LeftBracket => self.list(),
                 TokenKind::Class => self.class(),
-                TokenKind::Identifier(_) => self.stmt_identifier(),
+                TokenKind::Identifier(_) => {
+                    let expr = self.expr();
+                    match expr {
+                        Node::Call { .. } => Node::Pop{expr: Box::new(expr)},
+                        n => n
+                    }
+                },
                 TokenKind::If => self.stmt_if(),
                 TokenKind::For => self.stmt_for(),
                 TokenKind::While => self.stmt_while(),
@@ -95,33 +101,6 @@ impl Parser<'_> {
         _ = self.lexer.next();
         let expr = self.expr();
         Node::Return(Box::new(expr))
-    }
-
-    fn stmt_identifier(&mut self) -> Node {
-        self.expr()
-        // todo: handle assignm,ent?
-        // let identifier = match self.lexer.next() {
-        //     Some(TokenKind::Identifier(name)) => name,
-        //     _ => unreachable!(),
-        // };
-        // self.lexer.peek()
-        //
-        // match self.lexer.next() {
-        //     Some(TokenKind::Equal) => {
-        //         let expr = self.expr();
-        //         Node::Reassign {
-        //             name: identifier,
-        //             expr: Box::new(expr),
-        //         }
-        //     }
-        //     Some(TokenKind::Dot) => {
-        //         let test = self.expr();
-        //         println!("its a dot: {:?}", test);
-        //         Node::Get { lhs: Box::new(test), field: identifier }
-        //     }
-        //     Some(TokenKind::LeftParen) => self.call(Node::GetVar(identifier)),
-        //     _ => panic!("Expected dot or equal"),
-        // }
     }
 
     fn stmt_if(&mut self) -> Node {
