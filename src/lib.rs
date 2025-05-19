@@ -1,4 +1,4 @@
-use std::{io::{stdout, Stdout, Write}, time::Instant};
+use std::{io::{stdout, Write}, time::Instant};
 
 use compiler::Compiler;
 use parser::Parser;

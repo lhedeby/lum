@@ -51,10 +51,12 @@ impl Parser<'_> {
                 TokenKind::Identifier(_) => {
                     let expr = self.expr();
                     match expr {
-                        Node::Call { .. } => Node::Pop{expr: Box::new(expr)},
-                        n => n
+                        Node::Call { .. } => Node::Pop {
+                            expr: Box::new(expr),
+                        },
+                        n => n,
                     }
-                },
+                }
                 TokenKind::If => self.stmt_if(),
                 TokenKind::For => self.stmt_for(),
                 TokenKind::While => self.stmt_while(),
@@ -377,13 +379,6 @@ impl Parser<'_> {
     }
 
     fn call(&mut self, lhs: Node) -> Node {
-        println!("lhs call: {:?}", lhs);
-        // let (name, lhs) = match lhs {
-        //     Node::GetVar(name) => (name, Some(lhs)),
-        //     Node::Get { lhs, field } => (field, Some(lhs)),
-        //     _ => panic!("lhs should be get var"),
-        // };
-
         let mut args = vec![];
         if self.lexer.peek() != Some(&TokenKind::RightParen) {
             loop {
@@ -400,21 +395,18 @@ impl Parser<'_> {
         _ = self.lexer.next();
 
         match lhs {
-            Node::GetVar(name) => Node::Call {
-                name,
-                args,
-                lhs: None,
-            },
-            Node::Get { lhs, field } => Node::Call {
+            // native or instance
+            Node::GetVar(name) => Node::Call { name, args },
+            Node::Get { lhs, field } => Node::Method {
                 name: field,
                 args,
-                lhs: Some(lhs),
+                lhs,
             },
             _ => panic!("lhs should be get var"),
         }
-        //Node::Call { name, args, lhs }
     }
     fn index(&mut self, lhs: Node) -> Node {
+        println!("lhs: {:?}", lhs);
         todo!()
     }
     fn get_or_set(&mut self, lhs: Node) -> Node {

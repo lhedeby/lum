@@ -41,10 +41,14 @@ pub enum Node {
     Call {
         name: String,
         args: Vec<Node>,
-        lhs: Option<Box<Node>>,
+    },
+    Method {
+        name: String,
+        args: Vec<Node>,
+        lhs: Box<Node>,
     },
     Pop {
-        expr: Box<Node>
+        expr: Box<Node>,
     },
     EqualEqual {
         lhs: Box<Node>,
@@ -251,16 +255,21 @@ impl Node {
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 expr.pretty_print(&new_indent, true);
             }
-            Node::Call { name, args, lhs } => {
+            Node::Call { name, args } => {
                 println!("Call: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 for arg in args {
                     arg.pretty_print(&new_indent, false);
                 }
-                if let Some(lhs) = lhs {
-                    let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
-                    lhs.pretty_print(&new_indent, true);
+            }
+            Node::Method { name, args, lhs } => {
+                println!("Method: {}", name);
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                for arg in args {
+                    arg.pretty_print(&new_indent, false);
                 }
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                lhs.pretty_print(&new_indent, true);
             }
             Node::EqualEqual { lhs, rhs } => {
                 println!("EqualEqual");

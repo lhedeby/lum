@@ -1,7 +1,3 @@
-        PRINT(TO_STRING(true and true))
-        PRINT(TO_STRING(true and false))
-        PRINT(TO_STRING(false and false))
-
-        PRINT(TO_STRING(true or false))
-        PRINT(TO_STRING(true or false))
-        PRINT(TO_STRING(false or false))
+def hello = [1,2,3]
+PRINT(TO_STRING(hello))
+hello[0] = 55

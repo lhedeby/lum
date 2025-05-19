@@ -13,7 +13,7 @@ pub struct Vm {
 struct CallFrame {
     return_pos: usize,
     // is this needed?
-    arity: usize,
+    // arity: usize,
     stack_offset: usize,
 }
 
@@ -45,8 +45,8 @@ impl Vm {
         let mut stack: Vec<Value> = Vec::with_capacity(64);
 
         while ip < self.code.len() {
-            println!("stack: {:?}", stack);
-            println!("instruction: {:?}", self.code[ip]);
+            // println!("stack: {:?}", stack);
+            // println!("instruction: {:?}", self.code[ip]);
             match self.code[ip] {
                 OpCode::PushInt(v) => {
                     stack.push(Value::Int(v));
@@ -193,7 +193,7 @@ impl Vm {
                     stack_offset = stack.len() - arity;
                     self.call_stack.push(CallFrame {
                         return_pos: ip + 1,
-                        arity,
+                        // arity,
                         stack_offset,
                     });
                     ip = pos;

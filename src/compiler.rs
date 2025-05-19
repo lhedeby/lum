@@ -154,7 +154,7 @@ impl Compiler {
             Node::Nil => {
                 self.code.push(OpCode::PushNil);
                 None
-            },
+            }
             Node::GetVar(name) => {
                 let local = self.get_local(&name);
                 let pos = local.stack_pos;
@@ -202,7 +202,7 @@ impl Compiler {
                 panic!("Could not find field '{name}'")
             }
             // TODO: class functions (methods) should always return nil at the end of the method
-            // a stmt call node should probably be specified to pop the unused value, but 
+            // a stmt call node should probably be specified to pop the unused value, but
             // otherwise we always want a value
             Node::Class {
                 name,
@@ -253,48 +253,48 @@ impl Compiler {
                 let local = self.get_local(&name);
                 let kind = self.compile(expr);
                 if kind.is_some_and(|k| k != local.kind) {
-                // if local.kind != kind.expect("Cant be none") {
+                    // if local.kind != kind.expect("Cant be none") {
                     panic!("trying to reassign with a different type");
                 }
                 self.code.push(OpCode::SetLocal(local.stack_pos));
                 None
             }
-            Node::Pop {expr} => {
+            Node::Pop { expr } => {
                 self.compile(expr);
                 self.code.push(OpCode::Pop);
                 None
+            }
+            Node::Method { name, args, lhs } => {
+                let kind = self.compile(lhs);
+                let class_name = match kind {
+                    Some(Type::Class(name)) => name,
+                    _ => panic!("must be class"),
+                };
+
+                // todo: should this be here?
+                for arg in args {
+                    self.compile(arg);
+                }
+                for c in &self.classes {
+                    if c.name == class_name {
+                        for func in &c.functions {
+                            if func.name == *name {
+                                self.code
+                                    .push(OpCode::Call(func.code_start, func.params.len() + 1)); // +1 for 'self'
+                                return func.return_kind.clone();
+                            }
+                        }
+                        panic!("could not find function")
+                    }
+                }
+                panic!("could not find class")
             }
             // TODO: Theres 3 different calls:
             // NewInstance, Method, Native
             // Should probably split these in the parser
             // method is easy because its the only one with lhs
-            
-            Node::Call { name, args, lhs } => {
-                if let Some(lhs) = lhs {
-                    let kind = self.compile(lhs);
-                    let class_name = match kind {
-                        Some(Type::Class(name)) => name,
-                        _ => panic!("must be class"),
-                    };
-
-                    // todo: should this be here?
-                    for arg in args {
-                        self.compile(arg);
-                    }
-                    for c in &self.classes {
-                        if c.name == class_name {
-                            for func in &c.functions {
-                                if func.name == *name {
-                                    self.code
-                                        .push(OpCode::Call(func.code_start, func.params.len() + 1)); // +1 for 'self'
-                                    return func.return_kind.clone();
-                                }
-                            }
-                            panic!("could not find function")
-                        }
-                    }
-                    panic!("could not find class")
-                }
+            Node::Call { name, args } => {
+                // CREATE INSTANCE
                 if let Some(class) = self.classes.iter().find(|c| c.name == *name) {
                     if args.len() != class.fields.len() {
                         panic!("arity does not match")
@@ -307,9 +307,9 @@ impl Compiler {
                     self.code.push(OpCode::Instance(args.len()));
                     Some(Type::Class(name.to_string()))
                 } else {
+                    // NATIVE CALL
                     let (num, arity, kind) = match name.as_str() {
                         "PRINT" => (0, 1, None),
-
                         "TO_STRING" => (1, 1, Some(Type::String)),
                         _ => panic!("no native function, {}", name),
                     };
