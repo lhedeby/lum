@@ -198,38 +198,24 @@ impl Vm {
                     });
                     ip = pos;
                 }
-                OpCode::Return(has_value) => match has_value {
-                    true => {
-                        let value = stack.pop().unwrap();
+                OpCode::Return => {
+                    let value = stack.pop().unwrap();
 
-                        let call_frame = self
-                            .call_stack
-                            .pop()
-                            .expect("call stack should not be empty");
-                        stack_offset = if let Some(so) = self.call_stack.last() {
-                            so.stack_offset
-                        } else {
-                            0
-                        };
-                        while stack.len() > call_frame.stack_offset {
-                            stack.pop();
-                        }
-                        ip = call_frame.return_pos;
-                        stack.push(value);
+                    let call_frame = self
+                        .call_stack
+                        .pop()
+                        .expect("call stack should not be empty");
+                    stack_offset = if let Some(so) = self.call_stack.last() {
+                        so.stack_offset
+                    } else {
+                        0
+                    };
+                    while stack.len() > call_frame.stack_offset {
+                        stack.pop();
                     }
-                    false => {
-                        let call_frame = self
-                            .call_stack
-                            .pop()
-                            .expect("call stack should not be empty");
-                        stack_offset = if let Some(so) = self.call_stack.last() {
-                            so.stack_offset
-                        } else {
-                            0
-                        };
-                        ip = call_frame.return_pos
-                    }
-                },
+                    ip = call_frame.return_pos;
+                    stack.push(value);
+                }
                 OpCode::Pop => {
                     _ = stack.pop().unwrap();
                     ip += 1
@@ -346,9 +332,7 @@ impl Vm {
                     let indexer = stack.pop().unwrap();
                     let list = stack.pop().unwrap();
                     match (indexer, list) {
-                        (Value::Int(i), Value::List(l)) => {
-                            self.lists[l][i as usize] = new_value
-                        }
+                        (Value::Int(i), Value::List(l)) => self.lists[l][i as usize] = new_value,
                         _ => panic!("must be int and list"),
                     }
                     ip += 1;

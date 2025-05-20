@@ -2,12 +2,10 @@
             bar() {
                 def k = @i + @j
                 def b = 2
-                return b
             }
         }
 
         def f = foo(2, 5)
 
-        def c = f.bar()
+        f.bar()
 
-        PRINT(TO_STRING(c))

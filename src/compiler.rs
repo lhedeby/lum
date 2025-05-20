@@ -253,7 +253,8 @@ impl Compiler {
                         return_kind: f.return_kind.clone(),
                     };
                     funcs.push(cf);
-                    self.code.push(OpCode::Return(false));
+                    self.code.push(OpCode::PushNil);
+                    self.code.push(OpCode::Return);
                     self.end_fun();
                 }
                 let end = self.code.len();
@@ -276,7 +277,6 @@ impl Compiler {
                 let local = self.get_local(&name);
                 let kind = self.compile(expr);
                 if kind.is_some_and(|k| k != local.kind) {
-                    // if local.kind != kind.expect("Cant be none") {
                     panic!("trying to reassign with a different type");
                 }
                 self.code.push(OpCode::SetLocal(local.stack_pos));
@@ -374,7 +374,7 @@ impl Compiler {
                 } else {
                     panic!("Should never be empty")
                 }
-                self.code.push(OpCode::Return(true));
+                self.code.push(OpCode::Return);
                 None
             }
             Node::While { condition, block } => {

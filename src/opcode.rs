@@ -20,7 +20,7 @@ pub enum OpCode {
     Get(usize),
     Set(usize),
     Call(usize, usize),
-    Return(bool),
+    Return,
     Pop,
     Neg,
     Not,
