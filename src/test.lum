@@ -1,5 +1,13 @@
-def hello = ["hello","test","foo"]<str>
-hello[0] = "yes"
-hello[2] = nil
-hello[2] = "again"
-PRINT(TO_STRING(hello))
+        class foo(int i, int j) {
+            bar() {
+                def k = @i + @j
+                def b = 2
+                return b
+            }
+        }
+
+        def f = foo(2, 5)
+
+        def c = f.bar()
+
+        PRINT(TO_STRING(c))

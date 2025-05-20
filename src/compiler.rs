@@ -10,6 +10,7 @@ pub struct Compiler {
     depth: usize,
     classes: Vec<Class>,
     current_fields: Option<Vec<Param>>,
+    current_return_kind: Vec<Option<Type>>,
 }
 
 #[derive(Clone, Debug)]
@@ -43,6 +44,7 @@ impl Compiler {
             classes: vec![],
             strings: vec![],
             current_fields: None,
+            current_return_kind: vec![],
         }
     }
 
@@ -239,7 +241,11 @@ impl Compiler {
                         self.add_local(&pp.name, pp.kind.clone());
                     }
                     let code_start = self.code.len();
+                    self.current_return_kind.push(f.return_kind.clone());
                     self.compile(&f.block);
+                    self.current_return_kind
+                        .pop()
+                        .expect("current_return_kind should never be empty");
                     let cf = CompilerFunction {
                         name: f.name.to_string(),
                         params: f.params.to_vec(),
@@ -360,9 +366,16 @@ impl Compiler {
                 None
             }
             Node::Return(node) => {
-                let expr = self.compile(node);
+                let kind = self.compile(node);
+                if let Some(k) = self.current_return_kind.last() {
+                    if kind != *k {
+                        panic!("return kind '{:?}' does not match method '{:?}'", kind, k)
+                    }
+                } else {
+                    panic!("Should never be empty")
+                }
                 self.code.push(OpCode::Return(true));
-                expr
+                None
             }
             Node::While { condition, block } => {
                 let loop_start = self.code.len();
