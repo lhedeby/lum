@@ -51,7 +51,7 @@ impl Parser<'_> {
                 TokenKind::Identifier(_) => {
                     let expr = self.expr();
                     match expr {
-                        Node::Call { .. } => Node::Pop {
+                        Node::Method { .. } | Node::Call { .. } => Node::Pop {
                             expr: Box::new(expr),
                         },
                         n => n,
