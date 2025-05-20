@@ -13,7 +13,16 @@ pub enum Node {
     },
     List {
         items: Vec<Node>,
-        kind: Option<Type>,
+        kind: Type,
+    },
+    Index {
+        lhs: Box<Node>,
+        indexer: Box<Node>,
+    },
+    IndexSet {
+        lhs: Box<Node>,
+        indexer: Box<Node>,
+        rhs: Box<Node>,
     },
     Bool(bool),
     Nil,
@@ -177,11 +186,22 @@ impl Node {
                 lhs.pretty_print(&new_indent, false);
                 rhs.pretty_print(&new_indent, true);
             }
+
+            Node::Index { lhs, indexer } => {
+                println!("Index");
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                lhs.pretty_print(&new_indent, false);
+                indexer.pretty_print(&new_indent, true);
+            }
+            Node::IndexSet { lhs, indexer, rhs } => {
+                println!("IndexSet");
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                lhs.pretty_print(&new_indent, false);
+                indexer.pretty_print(&new_indent, false);
+                rhs.pretty_print(&new_indent, true);
+            }
             Node::List { items, kind } => {
-                match kind {
-                    Some(ty) => println!("List<{:?}>", ty),
-                    None => println!("List"),
-                }
+                println!("List<{:?}>", kind);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 for (i, elem) in items.iter().enumerate() {
                     elem.pretty_print(&new_indent, i == items.len() - 1);

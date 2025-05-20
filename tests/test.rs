@@ -56,7 +56,7 @@ fn classes() {
 #[test]
 fn list() {
     let code = r#"
-        def a = [1+5,2,3]
+        def a = [1+5,2,3]<int>
         PRINT(TO_STRING(a))
     "#;
     let expected = "[6, 2, 3]\n";
@@ -172,6 +172,18 @@ fn class_return() {
         PRINT(TO_STRING(c))
     "#;
     let expected = "2\n";
+    test_code(code, expected);
+}
+
+#[test]
+fn index() {
+    let code = r#"
+        def hello = [1,2,3]<int>
+        hello[0] = 55
+        hello[2] = 22
+        PRINT(TO_STRING(hello))
+    "#;
+    let expected = "[55, 2, 22]\n";
     test_code(code, expected);
 }
 

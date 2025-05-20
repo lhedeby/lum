@@ -121,31 +121,48 @@ impl Compiler {
                 self.strings.push(s.to_string());
                 Some(Type::String)
             }
-            Node::List { items, kind } => {
-                let return_kind = if let Some(explicit_kind) = kind {
-                    for item in items {
-                        let item_kind = self.compile(item);
-                        if item_kind.is_none_or(|ik| ik != *explicit_kind) {
-                            panic!("Wrong kind")
+            Node::Index { lhs, indexer } => {
+                let kind = self.compile(lhs);
+                match self.compile(indexer) {
+                    Some(Type::Int) => {}
+                    _ => panic!("indexer must be an int"),
+                }
+                self.code.push(OpCode::IndexGet);
+                kind
+            }
+            Node::IndexSet { lhs, indexer, rhs } => {
+                let lhs_kind = self.compile(lhs);
+
+                match self.compile(indexer) {
+                    Some(Type::Int) => {}
+                    _ => panic!("indexer must be an int"),
+                }
+                let rhs_kind = self.compile(rhs);
+                match (lhs_kind, rhs_kind) {
+                    (Some(k1), Some(k2)) => {
+                        if k1 != k2 {
+                            panic!("cannot reassign type '{:?}' to '{:?}'", k2, k1)
                         }
                     }
-                    Some(explicit_kind.clone())
-                } else {
-                    let mut implicit_type = None;
-                    for item in items {
-                        let item_kind = self.compile(item);
-                        if implicit_type == None {
-                            implicit_type = item_kind;
-                        } else {
-                            if implicit_type != item_kind {
-                                panic!("different kinds in list")
+                    (Some(_), None) => {}
+                    _ => panic!("invalid types"),
+                }
+                self.code.push(OpCode::IndexSet);
+                None
+            }
+            Node::List { items, kind } => {
+                for item in items {
+                    match self.compile(item) {
+                        Some(k) => {
+                            if k != *kind {
+                                panic!("wrong type in list!")
                             }
                         }
+                        None => panic!("expected type in list"),
                     }
-                    implicit_type
-                };
+                }
                 self.code.push(OpCode::List(items.len()));
-                return_kind
+                Some(kind.clone())
             }
             Node::Bool(value) => {
                 self.code.push(OpCode::PushBool(*value));

@@ -1,3 +1,5 @@
-def hello = [1,2,3]
+def hello = ["hello","test","foo"]<str>
+hello[0] = "yes"
+hello[2] = nil
+hello[2] = "again"
 PRINT(TO_STRING(hello))
-hello[0] = 55

@@ -32,6 +32,8 @@ pub enum OpCode {
     LessEqual,
     Greater,
     GreaterEqual,
+    IndexGet,
+    IndexSet,
 }
 
 

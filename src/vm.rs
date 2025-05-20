@@ -330,12 +330,34 @@ impl Vm {
                     stack.push(Value::Bool(b));
                     ip += 1;
                 }
+                OpCode::IndexGet => {
+                    let indexer = stack.pop().unwrap();
+                    let list = stack.pop().unwrap();
+                    match (indexer, list) {
+                        (Value::Int(i), Value::List(l)) => {
+                            stack.push(self.lists[l][i as usize].clone())
+                        }
+                        _ => panic!("must be int and list"),
+                    }
+                    ip += 1;
+                }
+                OpCode::IndexSet => {
+                    let new_value = stack.pop().unwrap();
+                    let indexer = stack.pop().unwrap();
+                    let list = stack.pop().unwrap();
+                    match (indexer, list) {
+                        (Value::Int(i), Value::List(l)) => {
+                            self.lists[l][i as usize] = new_value
+                        }
+                        _ => panic!("must be int and list"),
+                    }
+                    ip += 1;
+                }
                 _ => todo!("instruction not implemented: {:?}", self.code[ip]),
             }
         }
     }
     fn get_value_as_str(&self, val: &Value) -> String {
-        println!("val: {:?}", val);
         match val {
             Value::Bool(b) => format!("{}", b),
             Value::Float(f) => format!("{}", f),

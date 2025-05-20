@@ -76,7 +76,6 @@ impl Parser<'_> {
             Some(TokenKind::Identifier(name)) => name,
             _ => panic!("expected identifier"),
         };
-        println!("name: {:?}", name);
         match self.lexer.next() {
             Some(TokenKind::Equal) => {}
             t => panic!("Unexpected token '{:?}', expected '='", t),
@@ -326,21 +325,23 @@ impl Parser<'_> {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::Equal => {
-                            println!("lhs equal: {:?}", lhs);
-                            match lhs {
-                                Node::Get { lhs, field } => Node::Set {
-                                    lhs,
-                                    field,
-                                    rhs: Box::new(rhs),
-                                },
-                                Node::GetVar(s) => Node::Reassign {
-                                    name: s,
-                                    expr: Box::new(rhs),
-                                },
-                                _ => panic!("equal infix, dunno if this is possible?"),
-                            }
-                        }
+                        TokenKind::Equal => match lhs {
+                            Node::Get { lhs, field } => Node::Set {
+                                lhs,
+                                field,
+                                rhs: Box::new(rhs),
+                            },
+                            Node::GetVar(s) => Node::Reassign {
+                                name: s,
+                                expr: Box::new(rhs),
+                            },
+                            Node::Index { lhs, indexer } => Node::IndexSet {
+                                lhs,
+                                indexer,
+                                rhs: Box::new(rhs),
+                            },
+                            _ => panic!("equal infix, dunno if this is possible?"),
+                        },
                         // TODO: Fill in others (Star, Slash, Minus, Equal)
                         _ => panic!("Unexpected infix token: {:?}", token),
                     };
@@ -406,8 +407,16 @@ impl Parser<'_> {
         }
     }
     fn index(&mut self, lhs: Node) -> Node {
-        println!("lhs: {:?}", lhs);
-        todo!()
+        let expr = self.expr();
+        match self.lexer.next() {
+            Some(TokenKind::RightBracket) => {}
+            _ => panic!("expected right bracket"),
+        }
+        Node::Index {
+            lhs: Box::new(lhs),
+            indexer: Box::new(expr),
+        }
+        //todo!()
     }
     fn get_or_set(&mut self, lhs: Node) -> Node {
         match self.lexer.next() {
@@ -420,35 +429,64 @@ impl Parser<'_> {
     }
     fn list(&mut self) -> Node {
         let mut items = vec![];
-
-        if self.lexer.peek() == Some(&TokenKind::RightBracket) {
-            _ = self.lexer.next();
-            let kind = match self.lexer.next() {
-                Some(TokenKind::Identifier(name)) => Type::Class(name),
-                Some(TokenKind::Int) => Type::Int,
-                Some(TokenKind::Bool) => Type::Int,
-                Some(TokenKind::Float) => Type::Int,
-                Some(TokenKind::Str) => Type::String,
-                _ => panic!("not a type"),
-            };
-            Node::List {
-                items: vec![],
-                kind: Some(kind),
-            }
-        } else {
+        if self.lexer.peek() != Some(&TokenKind::RightBracket) {
             loop {
                 items.push(self.expr());
                 match self.lexer.peek() {
                     Some(TokenKind::Comma) => _ = self.lexer.next(),
                     Some(TokenKind::RightBracket) => {
-                        _ = self.lexer.next();
                         break;
                     }
                     _ => panic!("expected ',' or ']'"),
                 }
             }
-            Node::List { items, kind: None }
         }
+        _ = self.lexer.next();
+        match self.lexer.next() {
+            Some(TokenKind::Less) => {}
+            _ => panic!("expected '<'"),
+        }
+        let kind = match self.var_type() {
+            Some(s) => s,
+            None => panic!("expected type"),
+        };
+
+        match self.lexer.next() {
+            Some(TokenKind::Greater) => {}
+            _ => panic!("expected '>'"),
+        }
+        Node::List { items, kind }
+
+        //panic!("here")
+        // if self.lexer.peek() == Some(&TokenKind::RightBracket) {
+        //     println!("here!!!!!!!!!!!!!!");
+        //     _ = self.lexer.next();
+        //     let kind = match self.lexer.next() {
+        //         Some(TokenKind::Identifier(name)) => Type::Class(name),
+        //         Some(TokenKind::Int) => Type::Int,
+        //         Some(TokenKind::Bool) => Type::Int,
+        //         Some(TokenKind::Float) => Type::Int,
+        //         Some(TokenKind::Str) => Type::String,
+        //         _ => panic!("not a type"),
+        //     };
+        //     Node::List {
+        //         items: vec![],
+        //         kind: Some(kind),
+        //     }
+        // } else {
+        //     loop {
+        //         items.push(self.expr());
+        //         match self.lexer.peek() {
+        //             Some(TokenKind::Comma) => _ = self.lexer.next(),
+        //             Some(TokenKind::RightBracket) => {
+        //                 _ = self.lexer.next();
+        //                 break;
+        //             }
+        //             _ => panic!("expected ',' or ']'"),
+        //         }
+        //     }
+        //     Node::List { items, kind: None }
+        // }
     }
     fn identifier(&mut self, name: String) -> Node {
         Node::GetVar(name)
