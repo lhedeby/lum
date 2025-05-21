@@ -77,12 +77,12 @@ impl Parser<'_> {
             _ => panic!("expected identifier"),
         };
         match self.lexer.next() {
-            Some(TokenKind::Equal) => {}
+            Some(TokenKind::Equal) => Node::SetField {
+                name,
+                expr: Box::new(self.expr()),
+            },
+            Some(TokenKind::LeftParen) => self.call(Node::GetField(name)),
             t => panic!("Unexpected token '{:?}', expected '='", t),
-        }
-        Node::SetField {
-            name,
-            expr: Box::new(self.expr()),
         }
     }
 
@@ -401,9 +401,14 @@ impl Parser<'_> {
             Node::Get { lhs, field } => Node::Method {
                 name: field,
                 args,
-                lhs,
+                lhs: Some(lhs),
             },
-            _ => panic!("lhs should be get var"),
+            Node::GetField(name) => Node::Method {
+                name: name,
+                args,
+                lhs: None,
+            },
+            v => panic!("lhs should be getvar or get but got '{:?}'", v),
         }
     }
     fn index(&mut self, lhs: Node) -> Node {

@@ -239,7 +239,7 @@ impl Vm {
                         }
                         (Value::List(v1), Value::List(v2)) => v1 == v2,
                         (Value::Instance(v1), Value::Instance(v2)) => v1 == v2,
-                        _ => panic!("cant compare types"),
+                        (p1, p2) => panic!("cant compare types '{:?}', '{:?}'", p1, p2),
                     };
 
                     stack.push(Value::Bool(v));

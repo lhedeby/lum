@@ -54,7 +54,7 @@ pub enum Node {
     Method {
         name: String,
         args: Vec<Node>,
-        lhs: Box<Node>,
+        lhs: Option<Box<Node>>,
     },
     Pop {
         expr: Box<Node>,
@@ -278,18 +278,19 @@ impl Node {
             Node::Call { name, args } => {
                 println!("Call: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
-                for arg in args {
-                    arg.pretty_print(&new_indent, false);
+                for (i, arg) in args.iter().enumerate() {
+                    arg.pretty_print(&new_indent, i == args.len() - 1);
                 }
             }
             Node::Method { name, args, lhs } => {
                 println!("Method: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
-                for arg in args {
-                    arg.pretty_print(&new_indent, false);
+                for (i, arg) in args.iter().enumerate() {
+                    arg.pretty_print(&new_indent, lhs.is_none() && i == args.len() - 1);
                 }
-                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
-                lhs.pretty_print(&new_indent, true);
+                if let Some(lhs) = lhs{
+                    lhs.pretty_print(&new_indent, true);
+                }
             }
             Node::EqualEqual { lhs, rhs } => {
                 println!("EqualEqual");

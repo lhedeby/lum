@@ -1,11 +1,15 @@
-        class foo(int i, int j) {
-            bar() {
-                def k = @i + @j
-                def b = 2
-            }
-        }
+class foo() {
 
-        def f = foo(2, 5)
+    bar() {
+        PRINT("BAR")
+    }
 
-        f.bar()
+    zab() {
+        PRINT("ZAB")
+        @bar()
+    }
+}
+
+foo().bar()
+foo().zab()
 

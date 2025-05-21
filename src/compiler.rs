@@ -11,6 +11,7 @@ pub struct Compiler {
     classes: Vec<Class>,
     current_fields: Option<Vec<Param>>,
     current_return_kind: Vec<Option<Type>>,
+    current_class_name: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -45,12 +46,16 @@ impl Compiler {
             strings: vec![],
             current_fields: None,
             current_return_kind: vec![],
+            current_class_name: None
         }
     }
 
     fn add_local(&mut self, name: &str, kind: Type) {
         let ll = self.variables.len() - 1;
         if let Some(map) = self.variables.last_mut() {
+            if map.contains_key(name) {
+                panic!("cant define '{name}' again")
+            }
             map.insert(
                 name.to_string(),
                 Local {
@@ -64,20 +69,29 @@ impl Compiler {
         }
     }
     fn get_local(&mut self, key: &str) -> Local {
+        println!("get: {:?}", key);
+        println!("{:?}", self.variables);
         for v in self.variables.iter().rev() {
             if let Some(val) = v.get(key) {
                 return val.clone();
             }
         }
-        panic!("could not find variable")
+        panic!("could not find variable '{key}'")
     }
     fn begin_scope(&mut self) {
         self.depth += 1;
     }
     fn end_scope(&mut self) {
         if let Some(vars) = self.variables.last_mut() {
+            let mut len = vars.len();
             vars.retain(|_, v| v.depth != self.depth);
+            while len > vars.len() {
+                len -= 1;
+                self.code.push(OpCode::Pop);
+                println!("len!")
+            }
         }
+        println!("ending scope vars; {:?}", self.variables);
         self.depth -= 1;
     }
 
@@ -228,12 +242,22 @@ impl Compiler {
                 fields,
                 functions,
             } => {
-                let mut funcs = vec![];
-
                 self.current_fields = Some(fields.to_vec());
+                self.current_class_name = Some(name.clone());
 
                 let jump = self.code.len();
                 self.code.push(OpCode::Jump(usize::MAX));
+
+                let class = Class {
+                    name: name.to_string(),
+                    fields: fields.to_vec(),
+                    functions: vec![],
+                };
+
+                if let Some(_) = self.classes.iter().find(|c| c.name == class.name) {
+                    panic!("cant define class '{}' multiple times", class.name);
+                }
+                self.classes.push(class);
 
                 for f in functions {
                     self.begin_fun();
@@ -252,7 +276,7 @@ impl Compiler {
                         code_start,
                         return_kind: f.return_kind.clone(),
                     };
-                    funcs.push(cf);
+                    self.classes.last_mut().unwrap().functions.push(cf);
                     self.code.push(OpCode::PushNil);
                     self.code.push(OpCode::Return);
                     self.end_fun();
@@ -264,13 +288,7 @@ impl Compiler {
                     unreachable!()
                 }
                 self.current_fields = None;
-
-                let class = Class {
-                    name: name.to_string(),
-                    fields: fields.to_vec(),
-                    functions: funcs,
-                };
-                self.classes.push(class);
+                self.current_class_name = None;
                 None
             }
             Node::Reassign { name, expr } => {
@@ -288,16 +306,19 @@ impl Compiler {
                 None
             }
             Node::Method { name, args, lhs } => {
-                let kind = self.compile(lhs);
-                let class_name = match kind {
-                    Some(Type::Class(name)) => name,
-                    _ => panic!("must be class"),
+                let class_name = if let Some(lhs) = lhs {
+                    match self.compile(lhs) {
+                        Some(Type::Class(name)) => name,
+                        _ => panic!("must be class"),
+                    }
+                } else {
+                    self.current_class_name.clone().unwrap()
                 };
 
-                // todo: should this be here?
                 for arg in args {
                     self.compile(arg);
                 }
+
                 for c in &self.classes {
                     if c.name == class_name {
                         for func in &c.functions {
