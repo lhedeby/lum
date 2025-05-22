@@ -46,7 +46,7 @@ impl Compiler {
             strings: vec![],
             current_fields: None,
             current_return_kind: vec![],
-            current_class_name: None
+            current_class_name: None,
         }
     }
 
@@ -68,15 +68,13 @@ impl Compiler {
             panic!("no map")
         }
     }
-    fn get_local(&mut self, key: &str) -> Local {
-        println!("get: {:?}", key);
-        println!("{:?}", self.variables);
+    fn get_local(&mut self, key: &str) -> Option<Local> {
         for v in self.variables.iter().rev() {
             if let Some(val) = v.get(key) {
-                return val.clone();
+                return Some(val.clone());
             }
         }
-        panic!("could not find variable '{key}'")
+        None
     }
     fn begin_scope(&mut self) {
         self.depth += 1;
@@ -189,11 +187,22 @@ impl Compiler {
                 None
             }
             Node::GetVar(name) => {
-                let local = self.get_local(&name);
-                let pos = local.stack_pos;
-                let kind = local.kind.clone();
-                self.code.push(OpCode::GetLocal(pos));
-                Some(kind)
+                if let Some(local) = self.get_local(&name) {
+                    let pos = local.stack_pos;
+                    let kind = local.kind.clone();
+                    self.code.push(OpCode::GetLocal(pos));
+                    Some(kind)
+                } else {
+                    if let Some(class) = self.classes.iter().find(|c| c.name == *name) {
+                        if class.fields.len() != 0 {
+                            panic!("trying to call class without arguments")
+                        }
+
+                        self.code.push(OpCode::Instance(0));
+                        return Some(Type::Class(name.to_string()))
+                    }
+                    panic!("Could not find any variable with name '{}'", name)
+                }
             }
             Node::Def { name, expr } => {
                 match self.compile(expr) {
@@ -292,13 +301,16 @@ impl Compiler {
                 None
             }
             Node::Reassign { name, expr } => {
-                let local = self.get_local(&name);
-                let kind = self.compile(expr);
-                if kind.is_some_and(|k| k != local.kind) {
-                    panic!("trying to reassign with a different type");
+                if let Some(local) = self.get_local(&name) {
+                    let kind = self.compile(expr);
+                    if kind.is_some_and(|k| k != local.kind) {
+                        panic!("trying to reassign with a different type");
+                    }
+                    self.code.push(OpCode::SetLocal(local.stack_pos));
+                    None
+                } else {
+                    panic!("Could not find variable '{name}'")
                 }
-                self.code.push(OpCode::SetLocal(local.stack_pos));
-                None
             }
             Node::Pop { expr } => {
                 self.compile(expr);
@@ -464,6 +476,19 @@ impl Compiler {
                                     if f.name == *field {
                                         self.code.push(OpCode::Get(idx));
                                         return Some(f.kind.clone());
+                                    }
+                                }
+                                // if its not a field, it could be a method
+                                for func in &class.functions {
+                                    if func.name == *field {
+                                        if func.params.len() != 0 {
+                                            panic!("can only call methods with no arguments without '()'")
+                                        }
+                                        self.code.push(OpCode::Call(
+                                            func.code_start,
+                                            func.params.len() + 1,
+                                        )); // +1 for 'self'
+                                        return func.return_kind.clone();
                                     }
                                 }
                                 panic!("could not find field '{field}' in class '{name}'")

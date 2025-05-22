@@ -179,7 +179,12 @@ impl Parser<'_> {
             _ => panic!("expected identifier"),
         };
 
-        let fields = self.param_list();
+        let fields = match self.lexer.peek() {
+            Some(TokenKind::LeftParen) => self.param_list(),
+            Some(TokenKind::LeftBrace) => vec![],
+            _ => panic!("expected '(' or '{{'")
+        };
+        //let fields = self.param_list();
 
         match self.lexer.next() {
             Some(TokenKind::LeftBrace) => {}
@@ -192,7 +197,13 @@ impl Parser<'_> {
                     Some(TokenKind::Identifier(name)) => name,
                     t => panic!("expected identifier {:?}", t),
                 };
-                let params = self.param_list();
+
+                let params = match self.lexer.peek() {
+                    Some(TokenKind::LeftParen) => self.param_list(),
+                    Some(TokenKind::LeftBrace) => vec![],
+                    _ => panic!("expected '(' or '{{'")
+                };
+                //let params = self.param_list();
                 let return_kind = self.var_type();
 
                 let block = self.block();

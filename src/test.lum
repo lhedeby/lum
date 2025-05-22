@@ -1,15 +1,14 @@
-class foo() {
-
-    bar() {
+class Foo {
+    bar {
         PRINT("BAR")
     }
-
-    zab() {
-        PRINT("ZAB")
-        @bar()
+    zaz(int hello) {
+        PRINT("MAYBE")
     }
 }
 
-foo().bar()
-foo().zab()
+Foo().bar()
+Foo().bar
+
+Foo.bar
 

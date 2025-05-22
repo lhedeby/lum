@@ -216,3 +216,26 @@ fn fib() {
     let expected = "1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n";
     test_code(code, expected);
 }
+
+#[test]
+fn self_methods() {
+    let code = r#"
+        class foo() {
+
+            bar() {
+                PRINT("BAR")
+            }
+
+            zab() {
+                PRINT("ZAB")
+                @bar()
+            }
+        }
+
+        foo().bar()
+        foo().zab()
+
+    "#;
+    let expected = "BAR\nZAB\nBAR\n";
+    test_code(code, expected);
+}
