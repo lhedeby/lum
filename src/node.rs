@@ -51,6 +51,10 @@ pub enum Node {
         name: String,
         args: Vec<Node>,
     },
+    Native {
+        name: String,
+        args: Vec<Node>,
+    },
     Method {
         name: String,
         args: Vec<Node>,
@@ -277,6 +281,13 @@ impl Node {
             }
             Node::Call { name, args } => {
                 println!("Call: {}", name);
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                for (i, arg) in args.iter().enumerate() {
+                    arg.pretty_print(&new_indent, i == args.len() - 1);
+                }
+            }
+            Node::Native { name, args } => {
+                println!("Native: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 for (i, arg) in args.iter().enumerate() {
                     arg.pretty_print(&new_indent, i == args.len() - 1);

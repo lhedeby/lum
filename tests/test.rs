@@ -10,7 +10,7 @@ fn test_code(code: &str, expected: &str) {
 #[test]
 fn hello_world() {
     let code = r#"
-        PRINT("Hello, world!")
+        #print("Hello, world!")
     "#;
     let expected = "Hello, world!\n";
     test_code(code, expected);
@@ -23,7 +23,7 @@ fn r#while() {
         while i < 10 {
             i = i + 1
         }
-        PRINT(TO_STRING(i))
+        #print(#to_string(i))
     "#;
     let expected = "10\n";
     test_code(code, expected);
@@ -34,20 +34,20 @@ fn classes() {
     let code = r#"
         class foo(int i, int j) {
             bar(int a) {
-                PRINT("BAR")
-                PRINT(TO_STRING(@i))
+                #print("BAR")
+                #print(#to_string(@i))
                 @i = 9
             }
         }
 
         def f = foo(1, 5)
         f.i = 2
-        PRINT(TO_STRING(f.i))
+        #print(#to_string(f.i))
         f.i = 3
 
         f.bar(4)
 
-        PRINT(TO_STRING(f.i))
+        #print(#to_string(f.i))
     "#;
     let expected = "2\nBAR\n3\n9\n";
     test_code(code, expected);
@@ -57,7 +57,7 @@ fn classes() {
 fn list() {
     let code = r#"
         def a = [1+5,2,3]<int>
-        PRINT(TO_STRING(a))
+        #print(#to_string(a))
     "#;
     let expected = "[6, 2, 3]\n";
     test_code(code, expected);
@@ -72,9 +72,9 @@ fn nested_instances() {
         def f = foo(1, 2)
         def b = bar(f)
 
-        PRINT(TO_STRING(b.f.i))
+        #print(#to_string(b.f.i))
         b.f.i = 8
-        PRINT(TO_STRING(b.f.i))
+        #print(#to_string(b.f.i))
     "#;
     let expected = "1\n8\n";
     test_code(code, expected);
@@ -84,11 +84,11 @@ fn nested_instances() {
 fn r#if() {
     let code = r#"
         if true {
-            PRINT("Its true")
+            #print("Its true")
         }
 
         if false {
-            PRINT("Its not true")
+            #print("Its not true")
         }
     "#;
     let expected = "Its true\n";
@@ -99,11 +99,11 @@ fn r#if() {
 fn negation() {
     let code = r#"
         if !true {
-            PRINT("Its true")
+            #print("Its true")
         }
 
         if !false {
-            PRINT("Its not true")
+            #print("Its not true")
         }
     "#;
     let expected = "Its not true\n";
@@ -113,11 +113,11 @@ fn negation() {
 #[test]
 fn equality() {
     let code = r#"
-        PRINT(TO_STRING(1 == 1))
-        PRINT(TO_STRING(1 == 2))
+        #print(#to_string(1 == 1))
+        #print(#to_string(1 == 2))
 
-        PRINT(TO_STRING(1 != 1))
-        PRINT(TO_STRING(1 != 2))
+        #print(#to_string(1 != 1))
+        #print(#to_string(1 != 2))
     "#;
     let expected = "true\nfalse\nfalse\ntrue\n";
     test_code(code, expected);
@@ -126,13 +126,13 @@ fn equality() {
 #[test]
 fn and_or() {
     let code = r#"
-        PRINT(TO_STRING(true and true))
-        PRINT(TO_STRING(true and false))
-        PRINT(TO_STRING(false and false))
+        #print(#to_string(true and true))
+        #print(#to_string(true and false))
+        #print(#to_string(false and false))
 
-        PRINT(TO_STRING(true or false))
-        PRINT(TO_STRING(true or false))
-        PRINT(TO_STRING(false or false))
+        #print(#to_string(true or false))
+        #print(#to_string(true or false))
+        #print(#to_string(false or false))
     "#;
     let expected = "true\nfalse\nfalse\ntrue\ntrue\nfalse\n";
     test_code(code, expected);
@@ -141,12 +141,12 @@ fn and_or() {
 #[test]
 fn comparison() {
     let code = r#"
-        PRINT(TO_STRING(1 > 2))
-        PRINT(TO_STRING(1 < 2))
-        PRINT(TO_STRING(1 <= 2))
-        PRINT(TO_STRING(1 >= 2))
-        PRINT(TO_STRING(1 >= 1))
-        PRINT(TO_STRING(1 <= 1))
+        #print(#to_string(1 > 2))
+        #print(#to_string(1 < 2))
+        #print(#to_string(1 <= 2))
+        #print(#to_string(1 >= 2))
+        #print(#to_string(1 >= 1))
+        #print(#to_string(1 <= 1))
     "#;
     let expected = "false\ntrue\ntrue\nfalse\ntrue\ntrue\n";
     test_code(code, expected);
@@ -169,7 +169,7 @@ fn class_return() {
 
         def c = f.bar()
 
-        PRINT(TO_STRING(c))
+        #print(#to_string(c))
     "#;
     let expected = "2\n";
     test_code(code, expected);
@@ -181,7 +181,7 @@ fn index() {
         def hello = [1,2,3]<int>
         hello[0] = 55
         hello[2] = 22
-        PRINT(TO_STRING(hello))
+        #print(#to_string(hello))
     "#;
     let expected = "[55, 2, 22]\n";
     test_code(code, expected);
@@ -201,17 +201,17 @@ fn fib() {
 
         def f = fib(0, 1)
 
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
-        PRINT(TO_STRING(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
+        #print(#to_string(f.next()))
     "#;
     let expected = "1\n1\n2\n3\n5\n8\n13\n21\n34\n55\n89\n";
     test_code(code, expected);
@@ -223,11 +223,11 @@ fn self_methods() {
         class foo() {
 
             bar() {
-                PRINT("BAR")
+                #print("BAR")
             }
 
             zab() {
-                PRINT("ZAB")
+                #print("ZAB")
                 @bar()
             }
         }

@@ -199,7 +199,7 @@ impl Compiler {
                         }
 
                         self.code.push(OpCode::Instance(0));
-                        return Some(Type::Class(name.to_string()))
+                        return Some(Type::Class(name.to_string()));
                     }
                     panic!("Could not find any variable with name '{}'", name)
                 }
@@ -361,23 +361,24 @@ impl Compiler {
                     }
 
                     self.code.push(OpCode::Instance(args.len()));
-                    Some(Type::Class(name.to_string()))
-                } else {
-                    // NATIVE CALL
-                    let (num, arity, kind) = match name.as_str() {
-                        "PRINT" => (0, 1, None),
-                        "TO_STRING" => (1, 1, Some(Type::String)),
-                        _ => panic!("no native function, {}", name),
-                    };
-                    if args.len() != arity {
-                        panic!("wrong amount of arguments")
-                    }
-                    for arg in args {
-                        self.compile(arg);
-                    }
-                    self.code.push(OpCode::Native(num));
-                    kind
+                    return Some(Type::Class(name.to_string()));
                 }
+                panic!("No class with name '{name}'");
+            }
+            Node::Native { name, args } => {
+                let (num, arity, kind) = match name.as_str() {
+                    "print" => (0, 1, None),
+                    "to_string" => (1, 1, Some(Type::String)),
+                    _ => panic!("no native function, {}", name),
+                };
+                if args.len() != arity {
+                    panic!("wrong amount of arguments")
+                }
+                for arg in args {
+                    self.compile(arg);
+                }
+                self.code.push(OpCode::Native(num));
+                kind
             }
             Node::EqualEqual { lhs, rhs } => {
                 self.compile(lhs);
@@ -393,10 +394,9 @@ impl Compiler {
                 let end = self.code.len();
                 if let OpCode::JumpIfFalse(ref mut target) = self.code[skip_jump] {
                     *target = end;
-                } else {
-                    unreachable!()
+                    return None;
                 }
-                None
+                unreachable!()
             }
             Node::Return(node) => {
                 let kind = self.compile(node);
@@ -404,11 +404,10 @@ impl Compiler {
                     if kind != *k {
                         panic!("return kind '{:?}' does not match method '{:?}'", kind, k)
                     }
-                } else {
-                    panic!("Should never be empty")
+                    self.code.push(OpCode::Return);
+                    return None;
                 }
-                self.code.push(OpCode::Return);
-                None
+                panic!("Should never be empty")
             }
             Node::While { condition, block } => {
                 let loop_start = self.code.len();
@@ -420,10 +419,9 @@ impl Compiler {
                 let end = self.code.len();
                 if let OpCode::JumpIfFalse(ref mut target) = self.code[exit_jump] {
                     *target = end;
-                    None
-                } else {
-                    unreachable!()
+                    return None;
                 }
+                unreachable!()
             }
             Node::Or { lhs, rhs } => {
                 self.compile(lhs);

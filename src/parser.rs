@@ -62,12 +62,45 @@ impl Parser<'_> {
                 TokenKind::While => self.stmt_while(),
                 TokenKind::Return => self.stmt_return(),
                 TokenKind::At => self.stmt_set_field(),
+                TokenKind::Hash => {
+                    _ = self.lexer.next();
+                    Node::Pop {
+                        expr: Box::new(self.native()),
+                    }
+                }
                 t => panic!("Unexpected token '{:?}' in stmt()", t),
             };
             node
         } else {
             panic!("unexpected end of tokens")
         }
+    }
+
+    fn native(&mut self) -> Node {
+        let name = match self.lexer.next() {
+            Some(TokenKind::Identifier(name)) => name,
+            _ => panic!("expected identifier"),
+        };
+
+        match self.lexer.next() {
+            Some(TokenKind::LeftParen) => {}
+            t => panic!("expected '(' but got '{:?}'", t),
+        }
+        let mut args = vec![];
+        if self.lexer.peek() != Some(&TokenKind::RightParen) {
+            loop {
+                args.push(self.expr());
+                match self.lexer.peek() {
+                    Some(TokenKind::Comma) => _ = self.lexer.next(),
+                    Some(TokenKind::RightParen) => {
+                        break;
+                    }
+                    actual => panic!("expected ',' or ')' but got '{:?}'", actual),
+                }
+            }
+        }
+        _ = self.lexer.next();
+        Node::Native { name, args }
     }
 
     fn stmt_set_field(&mut self) -> Node {
@@ -182,7 +215,7 @@ impl Parser<'_> {
         let fields = match self.lexer.peek() {
             Some(TokenKind::LeftParen) => self.param_list(),
             Some(TokenKind::LeftBrace) => vec![],
-            _ => panic!("expected '(' or '{{'")
+            _ => panic!("expected '(' or '{{'"),
         };
         //let fields = self.param_list();
 
@@ -201,7 +234,7 @@ impl Parser<'_> {
                 let params = match self.lexer.peek() {
                     Some(TokenKind::LeftParen) => self.param_list(),
                     Some(TokenKind::LeftBrace) => vec![],
-                    _ => panic!("expected '(' or '{{'")
+                    _ => panic!("expected '(' or '{{'"),
                 };
                 //let params = self.param_list();
                 let return_kind = self.var_type();
@@ -296,7 +329,7 @@ impl Parser<'_> {
                         break;
                     }
 
-                    self.lexer.next(); // consume infix token
+                    _ = self.lexer.next(); // consume infix token
                     let rhs = self.parse_expr(next_precedence);
 
                     lhs = match token {
@@ -374,11 +407,8 @@ impl Parser<'_> {
             TokenKind::BoolValue(b) => Node::Bool(b),
             TokenKind::Nil => Node::Nil,
             TokenKind::At => self.field(),
-            //TokenKind::Fun => Function(),
+            TokenKind::Hash => self.native(),
             TokenKind::LeftParen => self.grouping(),
-            //TokenKind::LeftBrace => Obj(),
-            //TokenKind::Import => Import(),
-            // Todo: should types be included here?
             t => panic!("Unexpected token {:?} in parse_prefix()", t),
         }
     }

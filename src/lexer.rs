@@ -96,6 +96,7 @@ impl<'a> Iterator for Lexer<'a> {
                     ';' => TokenKind::SemiColon,
                     '!' => TokenKind::Bang,
                     '@' => TokenKind::At,
+                    '#' => TokenKind::Hash,
                     _ => panic!("unknown token"),
                 };
                 return Some(token);
@@ -169,6 +170,7 @@ pub enum TokenKind {
     Comma,
     Colon,
     At,
+    Hash,
     SemiColon,
     String(String),
     FloatValue(f32),
@@ -197,7 +199,6 @@ pub enum TokenKind {
     Return,
     While,
     Import,
-
 }
 
 #[test]
