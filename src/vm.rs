@@ -323,6 +323,13 @@ impl Vm {
                         (Value::Int(i), Value::List(l)) => {
                             stack.push(self.lists[l][i as usize].clone())
                         }
+                        // todo: Not sure if this should exist
+                        (Value::Int(i), Value::String(s)) => {
+                            let s_idx = self.strings.len();
+                            let new_s = &self.strings[s][(i as usize)..((i+1) as usize)];
+                            self.strings.push(new_s.to_string());
+                            stack.push(Value::String(s_idx));
+                        }
                         _ => panic!("must be int and list"),
                     }
                     ip += 1;

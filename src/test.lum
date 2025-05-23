@@ -5,3 +5,6 @@ class foo {
     }
 }
 
+
+foo.print("hello"[4])
+
