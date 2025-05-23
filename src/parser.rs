@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 use crate::{
-    lexer::{Lexer, TokenKind},
+    lexer::{Lexer, Token},
     node::{Function, Node, Param, Type},
 };
 
@@ -44,11 +44,11 @@ impl Parser<'_> {
     fn stmt(&mut self) -> Node {
         if let Some(token) = self.lexer.peek() {
             let node = match token {
-                TokenKind::LeftBrace => self.block(),
-                TokenKind::Def => self.def(),
-                TokenKind::LeftBracket => self.list(),
-                TokenKind::Class => self.class(),
-                TokenKind::Identifier(_) => {
+                Token::LeftBrace => self.block(),
+                Token::Def => self.def(),
+                Token::LeftBracket => self.list(),
+                Token::Class => self.class(),
+                Token::Identifier(_) => {
                     let expr = self.expr();
                     match expr {
                         Node::Method { .. } | Node::Call { .. } => Node::Pop {
@@ -57,18 +57,18 @@ impl Parser<'_> {
                         n => n,
                     }
                 }
-                TokenKind::If => self.stmt_if(),
-                TokenKind::For => self.stmt_for(),
-                TokenKind::While => self.stmt_while(),
-                TokenKind::Return => self.stmt_return(),
-                TokenKind::At => self.stmt_set_field(),
-                TokenKind::Hash => {
+                Token::If => self.stmt_if(),
+                Token::For => self.stmt_for(),
+                Token::While => self.stmt_while(),
+                Token::Return => self.stmt_return(),
+                Token::At => self.stmt_set_field(),
+                Token::Hash => {
                     _ = self.lexer.next();
                     Node::Pop {
                         expr: Box::new(self.native()),
                     }
                 }
-                t => panic!("Unexpected token '{:?}' in stmt()", t),
+                t => panic!("Unexpected token '{}' in stmt()", t),
             };
             node
         } else {
@@ -77,22 +77,17 @@ impl Parser<'_> {
     }
 
     fn native(&mut self) -> Node {
-        let name = match self.lexer.next() {
-            Some(TokenKind::Identifier(name)) => name,
-            _ => panic!("expected identifier"),
-        };
+        let name = self.consume_identifier();
 
-        match self.lexer.next() {
-            Some(TokenKind::LeftParen) => {}
-            t => panic!("expected '(' but got '{:?}'", t),
-        }
+        self.consume(Token::LeftParen);
+
         let mut args = vec![];
-        if self.lexer.peek() != Some(&TokenKind::RightParen) {
+        if self.lexer.peek() != Some(&Token::RightParen) {
             loop {
                 args.push(self.expr());
                 match self.lexer.peek() {
-                    Some(TokenKind::Comma) => _ = self.lexer.next(),
-                    Some(TokenKind::RightParen) => {
+                    Some(Token::Comma) => _ = self.lexer.next(),
+                    Some(Token::RightParen) => {
                         break;
                     }
                     actual => panic!("expected ',' or ')' but got '{:?}'", actual),
@@ -105,22 +100,19 @@ impl Parser<'_> {
 
     fn stmt_set_field(&mut self) -> Node {
         _ = self.lexer.next();
-        let name = match self.lexer.next() {
-            Some(TokenKind::Identifier(name)) => name,
-            _ => panic!("expected identifier"),
-        };
+        let name = self.consume_identifier();
         match self.lexer.next() {
-            Some(TokenKind::Equal) => Node::SetField {
+            Some(Token::Equal) => Node::SetField {
                 name,
                 expr: Box::new(self.expr()),
             },
-            Some(TokenKind::LeftParen) => self.call(Node::GetField(name)),
-            t => panic!("Unexpected token '{:?}', expected '='", t),
+            Some(Token::LeftParen) => self.call(Node::GetField(name)),
+            Some(token) => panic!("Unexpected token '{}', expected '='", token),
+            None => panic!("Unexpected end of tokens"),
         }
     }
 
     fn stmt_for(&mut self) -> Node {
-        println!("TOKEN: {:?}", self.lexer.peek().unwrap());
         todo!("FOR")
     }
     fn stmt_while(&mut self) -> Node {
@@ -149,19 +141,10 @@ impl Parser<'_> {
     }
 
     fn def(&mut self) -> Node {
-        match self.lexer.next() {
-            Some(TokenKind::Def) => {}
-            _ => unreachable!(),
-        };
-        let name = match self.lexer.next() {
-            Some(TokenKind::Identifier(name)) => name,
-            _ => panic!("expected identifier"),
-        };
+        self.consume(Token::Def);
+        let name = self.consume_identifier();
 
-        match self.lexer.next() {
-            Some(TokenKind::Equal) => {}
-            _ => panic!("expected equal"),
-        };
+        self.consume(Token::Equal);
 
         let expr = self.expr();
         Node::Def {
@@ -172,12 +155,12 @@ impl Parser<'_> {
 
     fn var_type(&mut self) -> Option<Type> {
         let kind = match self.lexer.peek() {
-            Some(TokenKind::Int) => Type::Int,
-            Some(TokenKind::Float) => Type::Float,
-            Some(TokenKind::Bool) => Type::Bool,
-            Some(TokenKind::Str) => Type::String,
-            Some(TokenKind::Map) => Type::Map,
-            Some(TokenKind::Identifier(name)) => Type::Class(name.to_string()),
+            Some(Token::Int) => Type::Int,
+            Some(Token::Float) => Type::Float,
+            Some(Token::Bool) => Type::Bool,
+            Some(Token::Str) => Type::String,
+            //Some(TokenKind::Map) => Type::Map,
+            Some(Token::Identifier(name)) => Type::Class(name.to_string()),
             _ => return None,
         };
         _ = self.lexer.next();
@@ -185,55 +168,40 @@ impl Parser<'_> {
     }
 
     fn block(&mut self) -> Node {
-        match self.lexer.next() {
-            Some(TokenKind::LeftBrace) => {}
-            t => panic!("expected 'leftbrace' but got '{:?}'", t),
-        }
+        self.consume(Token::LeftBrace);
 
         let mut stmts = vec![];
 
         while let Some(token) = self.lexer.peek() {
             match token {
-                TokenKind::RightBrace => break,
+                Token::RightBrace => break,
                 _ => stmts.push(self.stmt()),
             }
         }
-        match self.lexer.next() {
-            Some(TokenKind::RightBrace) => {}
-            _ => panic!("should be right brace"),
-        }
+        self.consume(Token::RightBrace);
+
         Node::Block { stmts }
     }
 
     fn class(&mut self) -> Node {
         _ = self.lexer.next();
-        let name = match self.lexer.next() {
-            Some(TokenKind::Identifier(name)) => name,
-            _ => panic!("expected identifier"),
-        };
+        let name = self.consume_identifier();
 
         let fields = match self.lexer.peek() {
-            Some(TokenKind::LeftParen) => self.param_list(),
-            Some(TokenKind::LeftBrace) => vec![],
+            Some(Token::LeftParen) => self.param_list(),
+            Some(Token::LeftBrace) => vec![],
             _ => panic!("expected '(' or '{{'"),
         };
-        //let fields = self.param_list();
 
-        match self.lexer.next() {
-            Some(TokenKind::LeftBrace) => {}
-            _ => panic!("expected 'leftbrace'"),
-        }
+        self.consume(Token::LeftBrace);
         let mut functions = vec![];
-        if self.lexer.peek() != Some(&TokenKind::RightBrace) {
+        if self.lexer.peek() != Some(&Token::RightBrace) {
             loop {
-                let name = match self.lexer.next() {
-                    Some(TokenKind::Identifier(name)) => name,
-                    t => panic!("expected identifier {:?}", t),
-                };
+                let name = self.consume_identifier();
 
                 let params = match self.lexer.peek() {
-                    Some(TokenKind::LeftParen) => self.param_list(),
-                    Some(TokenKind::LeftBrace) => vec![],
+                    Some(Token::LeftParen) => self.param_list(),
+                    Some(Token::LeftBrace) => vec![],
                     _ => panic!("expected '(' or '{{'"),
                 };
                 //let params = self.param_list();
@@ -248,17 +216,14 @@ impl Parser<'_> {
                     return_kind,
                 });
                 match self.lexer.peek() {
-                    Some(TokenKind::RightBrace) => {
+                    Some(Token::RightBrace) => {
                         break;
                     }
                     _ => {}
                 }
             }
         }
-        match self.lexer.next() {
-            Some(TokenKind::RightBrace) => {}
-            _ => panic!("expected right brace"),
-        }
+        self.consume(Token::RightBrace);
         Node::Class {
             name,
             fields,
@@ -267,23 +232,17 @@ impl Parser<'_> {
     }
 
     fn param_list(&mut self) -> Vec<Param> {
-        match self.lexer.next() {
-            Some(TokenKind::LeftParen) => {}
-            _ => panic!("expected '('"),
-        }
+        self.consume(Token::LeftParen);
         let mut params = vec![];
-        if self.lexer.peek() != Some(&TokenKind::RightParen) {
+        if self.lexer.peek() != Some(&Token::RightParen) {
             loop {
                 let kind = self.var_type().expect("must have type");
-                let name = match self.lexer.next() {
-                    Some(TokenKind::Identifier(name)) => name,
-                    _ => panic!("expected identifier"),
-                };
+                let name = self.consume_identifier();
 
                 params.push(Param { name, kind });
                 match self.lexer.peek() {
-                    Some(TokenKind::Comma) => _ = self.lexer.next(),
-                    Some(TokenKind::RightParen) => {
+                    Some(Token::Comma) => _ = self.lexer.next(),
+                    Some(Token::RightParen) => {
                         break;
                     }
                     _ => panic!("expected ',' or ')'"),
@@ -295,12 +254,12 @@ impl Parser<'_> {
     }
 
     fn expr(&mut self) -> Node {
-        let node = self.parse_expr(0);
-        node
+        self.parse_expr(0)
     }
     fn parse_expr(&mut self, precedence: usize) -> Node {
         let mut lhs = self.parse_prefix();
-        while precedence < infix_precedence(self.lexer.peek().unwrap_or(&TokenKind::SemiColon)) {
+        // todo: This is some wierd hack to handle eof
+        while precedence < infix_precedence(self.lexer.peek().unwrap_or(&Token::SemiColon)) {
             lhs = self.parse_infix(lhs);
         }
         lhs
@@ -309,15 +268,15 @@ impl Parser<'_> {
     fn parse_infix(&mut self, mut lhs: Node) -> Node {
         while let Some(token) = self.lexer.peek().cloned() {
             match token {
-                TokenKind::LeftParen => {
+                Token::LeftParen => {
                     self.lexer.next(); // consume '('
                     lhs = self.call(lhs);
                 }
-                TokenKind::LeftBracket => {
+                Token::LeftBracket => {
                     self.lexer.next(); // consume '['
                     lhs = self.index(lhs);
                 }
-                TokenKind::Dot => {
+                Token::Dot => {
                     self.lexer.next(); // consume '.'
                     lhs = self.get_or_set(lhs);
                 }
@@ -333,43 +292,43 @@ impl Parser<'_> {
                     let rhs = self.parse_expr(next_precedence);
 
                     lhs = match token {
-                        TokenKind::Or => Node::Or {
+                        Token::Or => Node::Or {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::And => Node::And {
+                        Token::And => Node::And {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::BangEqual => Node::BangEqual {
+                        Token::BangEqual => Node::BangEqual {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::EqualEqual => Node::EqualEqual {
+                        Token::EqualEqual => Node::EqualEqual {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::Greater => Node::Greater {
+                        Token::Greater => Node::Greater {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::GreaterEqual => Node::GreaterEqual {
+                        Token::GreaterEqual => Node::GreaterEqual {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::Less => Node::Less {
+                        Token::Less => Node::Less {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::LessEqual => Node::LessEqual {
+                        Token::LessEqual => Node::LessEqual {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::Plus => Node::Plus {
+                        Token::Plus => Node::Plus {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
-                        TokenKind::Equal => match lhs {
+                        Token::Equal => match lhs {
                             Node::Get { lhs, field } => Node::Set {
                                 lhs,
                                 field,
@@ -386,8 +345,7 @@ impl Parser<'_> {
                             },
                             _ => panic!("equal infix, dunno if this is possible?"),
                         },
-                        // TODO: Fill in others (Star, Slash, Minus, Equal)
-                        _ => panic!("Unexpected infix token: {:?}", token),
+                        _ => panic!("Unexpected infix token: {}", token),
                     };
                 }
             }
@@ -397,37 +355,37 @@ impl Parser<'_> {
     }
     fn parse_prefix(&mut self) -> Node {
         match self.lexer.next().unwrap() {
-            TokenKind::Minus => Node::Neg(Box::new(self.parse_expr(prefix_precedence()))),
-            TokenKind::Bang => Node::Not(Box::new(self.parse_expr(prefix_precedence()))),
-            TokenKind::LeftBracket => self.list(),
-            TokenKind::Identifier(name) => self.identifier(name),
-            TokenKind::IntValue(v) => Node::Int(v),
-            TokenKind::FloatValue(v) => Node::Float(v),
-            TokenKind::String(s) => Node::String(s),
-            TokenKind::BoolValue(b) => Node::Bool(b),
-            TokenKind::Nil => Node::Nil,
-            TokenKind::At => self.field(),
-            TokenKind::Hash => self.native(),
-            TokenKind::LeftParen => self.grouping(),
-            t => panic!("Unexpected token {:?} in parse_prefix()", t),
+            Token::Minus => Node::Neg(Box::new(self.parse_expr(prefix_precedence()))),
+            Token::Bang => Node::Not(Box::new(self.parse_expr(prefix_precedence()))),
+            Token::LeftBracket => self.list(),
+            Token::Identifier(name) => self.identifier(name),
+            Token::IntValue(v) => Node::Int(v),
+            Token::FloatValue(v) => Node::Float(v),
+            Token::String(s) => Node::String(s),
+            Token::BoolValue(b) => Node::Bool(b),
+            Token::Nil => Node::Nil,
+            Token::At => self.field(),
+            Token::Hash => self.native(),
+            Token::LeftParen => self.grouping(),
+            t => panic!("Unexpected token {} in parse_prefix()", t),
         }
     }
 
     fn field(&mut self) -> Node {
         match self.lexer.next() {
-            Some(TokenKind::Identifier(name)) => Node::GetField(name),
+            Some(Token::Identifier(name)) => Node::GetField(name),
             _ => panic!("expected identifier"),
         }
     }
 
     fn call(&mut self, lhs: Node) -> Node {
         let mut args = vec![];
-        if self.lexer.peek() != Some(&TokenKind::RightParen) {
+        if self.lexer.peek() != Some(&Token::RightParen) {
             loop {
                 args.push(self.expr());
                 match self.lexer.peek() {
-                    Some(TokenKind::Comma) => _ = self.lexer.next(),
-                    Some(TokenKind::RightParen) => {
+                    Some(Token::Comma) => _ = self.lexer.next(),
+                    Some(Token::RightParen) => {
                         break;
                     }
                     _ => panic!("expected ',' or ')'"),
@@ -449,38 +407,33 @@ impl Parser<'_> {
                 args,
                 lhs: None,
             },
-            v => panic!("lhs should be getvar or get but got '{:?}'", v),
+            n => panic!("lhs should be getvar or get but got '{:?}'", n),
         }
     }
     fn index(&mut self, lhs: Node) -> Node {
         let expr = self.expr();
-        match self.lexer.next() {
-            Some(TokenKind::RightBracket) => {}
-            _ => panic!("expected right bracket"),
-        }
+        self.consume(Token::RightBracket);
         Node::Index {
             lhs: Box::new(lhs),
             indexer: Box::new(expr),
         }
-        //todo!()
     }
     fn get_or_set(&mut self, lhs: Node) -> Node {
-        match self.lexer.next() {
-            Some(TokenKind::Identifier(field)) => Node::Get {
-                lhs: Box::new(lhs),
-                field,
-            },
-            _ => panic!("expected identifier"),
+        let field = self.consume_identifier();
+        Node::Get {
+            lhs: Box::new(lhs),
+            field
         }
     }
+
     fn list(&mut self) -> Node {
         let mut items = vec![];
-        if self.lexer.peek() != Some(&TokenKind::RightBracket) {
+        if self.lexer.peek() != Some(&Token::RightBracket) {
             loop {
                 items.push(self.expr());
                 match self.lexer.peek() {
-                    Some(TokenKind::Comma) => _ = self.lexer.next(),
-                    Some(TokenKind::RightBracket) => {
+                    Some(Token::Comma) => _ = self.lexer.next(),
+                    Some(Token::RightBracket) => {
                         break;
                     }
                     _ => panic!("expected ',' or ']'"),
@@ -488,76 +441,58 @@ impl Parser<'_> {
             }
         }
         _ = self.lexer.next();
-        match self.lexer.next() {
-            Some(TokenKind::Less) => {}
-            _ => panic!("expected '<'"),
-        }
+
+        self.consume(Token::Less);
+
         let kind = match self.var_type() {
             Some(s) => s,
             None => panic!("expected type"),
         };
 
-        match self.lexer.next() {
-            Some(TokenKind::Greater) => {}
-            _ => panic!("expected '>'"),
-        }
+        self.consume(Token::Greater);
         Node::List { items, kind }
-
-        //panic!("here")
-        // if self.lexer.peek() == Some(&TokenKind::RightBracket) {
-        //     println!("here!!!!!!!!!!!!!!");
-        //     _ = self.lexer.next();
-        //     let kind = match self.lexer.next() {
-        //         Some(TokenKind::Identifier(name)) => Type::Class(name),
-        //         Some(TokenKind::Int) => Type::Int,
-        //         Some(TokenKind::Bool) => Type::Int,
-        //         Some(TokenKind::Float) => Type::Int,
-        //         Some(TokenKind::Str) => Type::String,
-        //         _ => panic!("not a type"),
-        //     };
-        //     Node::List {
-        //         items: vec![],
-        //         kind: Some(kind),
-        //     }
-        // } else {
-        //     loop {
-        //         items.push(self.expr());
-        //         match self.lexer.peek() {
-        //             Some(TokenKind::Comma) => _ = self.lexer.next(),
-        //             Some(TokenKind::RightBracket) => {
-        //                 _ = self.lexer.next();
-        //                 break;
-        //             }
-        //             _ => panic!("expected ',' or ']'"),
-        //         }
-        //     }
-        //     Node::List { items, kind: None }
-        // }
     }
     fn identifier(&mut self, name: String) -> Node {
         Node::GetVar(name)
     }
     fn grouping(&mut self) -> Node {
         let node = self.expr();
+        self.consume(Token::RightParen);
+        node
+    }
+
+    /// Consumes the next token in the lexer iterator. Panics if not of the correct kind
+    fn consume(&mut self, token: Token) {
         match self.lexer.next() {
-            Some(TokenKind::RightParen) => node,
-            _ => panic!("Expected ')'"),
+            Some(actual) if actual == token => {}
+            Some(t) => panic!("Expected '{}' but got '{}'", token, t),
+            None => panic!("Unexpected end of tokens"),
+        }
+    }
+
+    /// Consumes the next identifier and returns the string.
+    /// If the token is not an identifier, panics.
+    fn consume_identifier(&mut self) -> String {
+        match self.lexer.next() {
+            Some(Token::Identifier(s)) => s,
+            Some(t) => panic!("Expected identifier but got '{}'", t),
+            None => panic!("Unexpected end of tokens"),
         }
     }
 }
 
-fn infix_precedence(kind: &TokenKind) -> usize {
+fn infix_precedence(kind: &Token) -> usize {
     match kind {
-        TokenKind::Equal => 1,
-        TokenKind::Or => 3,
-        TokenKind::And => 4,
-        TokenKind::BangEqual | TokenKind::EqualEqual => 5,
-        TokenKind::Greater | TokenKind::GreaterEqual | TokenKind::Less | TokenKind::LessEqual => 6,
-        TokenKind::Plus | TokenKind::Minus => 7,
-        TokenKind::Star | TokenKind::Slash => 8,
+        Token::Equal => 1,
+        Token::Or => 3,
+        Token::And => 4,
+        Token::BangEqual | Token::EqualEqual => 5,
+        Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual => 6,
+        Token::Plus | Token::Minus => 7,
+        Token::Star | Token::Slash => 8,
         // TokenKind::Colon
-        TokenKind::LeftParen | TokenKind::LeftBracket => 10,
-        TokenKind::Dot => 11,
+        Token::LeftParen | Token::LeftBracket => 10,
+        Token::Dot => 11,
         _ => 0,
     }
 }

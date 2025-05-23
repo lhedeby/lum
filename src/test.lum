@@ -1,3 +1,7 @@
 
+class foo {
+    print(str thetext) {
+        #print(thetext)
+    }
+}
 
-#print("hello")
