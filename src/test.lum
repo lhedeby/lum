@@ -1,10 +1,10 @@
-
-class foo {
-    print(str thetext) {
-        #print(thetext)
+class Lexer(str code, int p) {
+    print {
+        #print(@code)
     }
 }
 
+def lexer = Lexer("some code", 0)
+lexer.print
 
-foo.print("hello"[4])
 

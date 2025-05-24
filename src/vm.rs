@@ -133,7 +133,7 @@ impl Vm {
                 }
                 OpCode::Native(n) => {
                     match n {
-                        // PRINT
+                        // #print
                         0 => match stack.pop().unwrap() {
                             Value::String(s) => {
                                 writeln!(out, "{}", self.strings[s]).unwrap();
@@ -141,12 +141,24 @@ impl Vm {
                             }
                             _ => panic!("cant print value"),
                         },
-                        // TO_STRING
+                        // #to_string
                         1 => {
                             let new_string = self.get_value_as_str(&stack.pop().unwrap());
                             stack.push(Value::String(self.strings.len()));
                             self.strings.push(new_string);
                         }
+                        // #read_file
+                        2 => match stack.pop().unwrap() {
+                            Value::String(s) => {
+                                let content = match std::fs::read_to_string(&self.strings[s]) {
+                                    Ok(s) => s,
+                                    Err(e) => format!("Error reading file: {}", e),
+                                };
+                                stack.push(Value::String(self.strings.len()));
+                                self.strings.push(content);
+                            }
+                            _ => panic!("expected a string")
+                        },
                         _ => panic!("native function {} not found", n),
                     }
                     ip += 1;
@@ -326,7 +338,7 @@ impl Vm {
                         // todo: Not sure if this should exist
                         (Value::Int(i), Value::String(s)) => {
                             let s_idx = self.strings.len();
-                            let new_s = &self.strings[s][(i as usize)..((i+1) as usize)];
+                            let new_s = &self.strings[s][(i as usize)..((i + 1) as usize)];
                             self.strings.push(new_s.to_string());
                             stack.push(Value::String(s_idx));
                         }

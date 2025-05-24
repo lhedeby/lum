@@ -201,8 +201,10 @@ impl Parser<'_> {
 
                 let params = match self.lexer.peek() {
                     Some(Token::LeftParen) => self.param_list(),
-                    Some(Token::LeftBrace) => vec![],
-                    _ => panic!("expected '(' or '{{'"),
+                    Some(_) => vec![],
+                    None => panic!("unexpected end of tokens")
+                    // Some(Token::LeftBrace) => vec![],
+                    // _ => panic!("expected '(' or '{{'"),
                 };
                 //let params = self.param_list();
                 let return_kind = self.var_type();
