@@ -34,6 +34,7 @@ pub enum OpCode {
     GreaterEqual,
     IndexGet,
     IndexSet,
+    PushSelf,
 }
 
 

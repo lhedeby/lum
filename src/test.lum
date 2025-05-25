@@ -1,10 +1,22 @@
 class Lexer(str code, int p) {
-    print {
-        #print(@code)
+
+    whitespace() {
+        while @p < #len(@code) and @code[@p] == " " {
+            @p = @p + 1
+        }
     }
+
+    next {
+        @whitespace()
+        while @p < #len(@code) {
+            #print(@code[@p])
+            @p = @p + 1
+        }
+    }
+
 }
 
-def lexer = Lexer("some code", 0)
-lexer.print
+def lexer = Lexer("          class hello", 0)
+lexer.next
 
 

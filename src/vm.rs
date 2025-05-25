@@ -157,7 +157,12 @@ impl Vm {
                                 stack.push(Value::String(self.strings.len()));
                                 self.strings.push(content);
                             }
-                            _ => panic!("expected a string")
+                            _ => panic!("expected a string"),
+                        },
+                        3 => match stack.pop().unwrap() {
+                            Value::String(s) => stack.push(Value::Int(self.strings[s].len() as i32)),
+                            Value::List(s) => stack.push(Value::Int(self.lists[s].len() as i32)),
+                            _ => stack.push(Value::Nil),
                         },
                         _ => panic!("native function {} not found", n),
                     }
@@ -199,6 +204,12 @@ impl Vm {
                         Value::Instance(o) => self.instances[o][idx] = value,
                         p => panic!("get must be on instance {:?}", p),
                     };
+                    ip += 1;
+                }
+                // Maybe there is something inheritly wrong with
+                // this. @ should be the same as .self
+                OpCode::PushSelf => {
+                    stack.push(stack[stack_offset].clone());
                     ip += 1;
                 }
                 OpCode::Call(pos, arity) => {

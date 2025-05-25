@@ -106,7 +106,9 @@ impl Parser<'_> {
                 name,
                 expr: Box::new(self.expr()),
             },
-            Some(Token::LeftParen) => self.call(Node::GetField(name)),
+            Some(Token::LeftParen) => Node::Pop {
+                expr: Box::new(self.call(Node::GetField(name))),
+            },
             Some(token) => panic!("Unexpected token '{}', expected '='", token),
             None => panic!("Unexpected end of tokens"),
         }
@@ -202,9 +204,8 @@ impl Parser<'_> {
                 let params = match self.lexer.peek() {
                     Some(Token::LeftParen) => self.param_list(),
                     Some(_) => vec![],
-                    None => panic!("unexpected end of tokens")
-                    // Some(Token::LeftBrace) => vec![],
-                    // _ => panic!("expected '(' or '{{'"),
+                    None => panic!("unexpected end of tokens"), // Some(Token::LeftBrace) => vec![],
+                                                                // _ => panic!("expected '(' or '{{'"),
                 };
                 //let params = self.param_list();
                 let return_kind = self.var_type();
@@ -424,7 +425,7 @@ impl Parser<'_> {
         let field = self.consume_identifier();
         Node::Get {
             lhs: Box::new(lhs),
-            field
+            field,
         }
     }
 

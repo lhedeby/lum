@@ -318,12 +318,15 @@ impl Compiler {
                 None
             }
             Node::Method { name, args, lhs } => {
+                println!("method! with name {name}");
+                println!("lhs: {:?}", lhs);
                 let class_name = if let Some(lhs) = lhs {
                     match self.compile(lhs) {
                         Some(Type::Class(name)) => name,
                         _ => panic!("must be class"),
                     }
                 } else {
+                    self.code.push(OpCode::PushSelf);
                     self.current_class_name.clone().unwrap()
                 };
 
@@ -369,6 +372,8 @@ impl Compiler {
                 let (num, arity, kind) = match name.as_str() {
                     "print" => (0, 1, None),
                     "to_string" => (1, 1, Some(Type::String)),
+                    "read_file" => (2, 1, Some(Type::String)),
+                    "len" => (3, 1, Some(Type::Int)),
                     _ => panic!("no native function, {}", name),
                 };
                 if args.len() != arity {
