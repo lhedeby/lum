@@ -48,10 +48,10 @@ impl Parser<'_> {
                 Token::Def => self.def(),
                 Token::LeftBracket => self.list(),
                 Token::Class => self.class(),
-                Token::Identifier(_) => {
+                Token::Identifier(d) => {
                     let expr = self.expr();
                     match expr {
-                        Node::Method { .. } | Node::Call { .. } => Node::Pop {
+                        Node::Method { .. } | Node::Call { .. } | Node::Get { .. } => Node::Pop {
                             expr: Box::new(expr),
                         },
                         n => n,

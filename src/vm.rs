@@ -97,6 +97,11 @@ impl Vm {
                     match (v1, v2) {
                         (Value::Float(f1), Value::Float(f2)) => stack.push(Value::Float(f1 + f2)),
                         (Value::Int(i1), Value::Int(i2)) => stack.push(Value::Int(i1 + i2)),
+                        (Value::String(s1), Value::String(s2)) => {
+                            let new_string = self.strings[s1].clone() + &self.strings[s2];
+                            stack.push(Value::String(self.strings.len()));
+                            self.strings.push(new_string);
+                        },
                         _ => panic!("cant add"),
                     }
                     ip += 1;
@@ -128,6 +133,23 @@ impl Vm {
                     ip += 1;
                 }
                 OpCode::PushNil => {
+                    stack.push(Value::Nil);
+                    ip += 1;
+                }
+                OpCode::Print(n) => {
+                    let mut values = vec![];
+                    for _ in 0..n {
+                        values.push(stack.pop().unwrap())
+                    }
+
+
+                    while let Some(v) = values.pop() {
+                        write!(out, "{}", self.get_value_as_str(&v)).unwrap();
+                        if !values.is_empty() {
+                            write!(out, " ").unwrap();
+                        }
+                    }
+                    write!(out, "\n").unwrap();
                     stack.push(Value::Nil);
                     ip += 1;
                 }

@@ -1,3 +1,71 @@
+class Kind {
+    left_paren int { return 0 }
+    right_paren int { return 1 }
+    left_bracket int { return 2 }
+    right_bracket int { return 3 }
+    left_brace int { return 4 }
+    right_brace int { return 5 }
+    greater int { return 6 }
+    equal int { return 7 }
+    plus int { return 8 }
+    minus int { return 9 }
+    slash int { return 10 }
+    star int { return 11 }
+    dot int { return 12 }
+    comma int { return 13 }
+    colon int { return 14 }
+    semi_colon int { return 15 }
+    bang int { return 16 }
+    at int { return 17 }
+    hash int { return 18 }
+    k_class int { return 19 }
+    k_and int { return 20 }
+    k_or int { return 21 }
+    k_else int { return 22 }
+    k_if int { return 23 }
+    k_for int { return 24 }
+    k_nil int { return 25 }
+    k_return int { return 26 }
+    k_while int { return 27 }
+    k_import int { return 28 }
+    k_true int { return 29 }
+    k_false int { return 30 }
+    k_def int { return 31 }
+    k_int int { return 32 }
+    k_float int { return 33 }
+    k_bool int { return 34 }
+    k_str int { return 35 }
+    identifier int { return 36 }
+
+    from_str(str in) int {
+        def kinds = [
+            "(",
+            ")",
+            "[",
+            "]",
+            "{",
+            "}",
+            "<",
+            ">",
+            "=",
+            "+",
+            "-",
+            "/",
+            "*",
+            ".",
+            ",",
+            ":",
+            ";",
+            "!",
+            "@",
+            "#"
+        ]<str>
+    }
+}
+
+class Token(str value, int start, int end, int kind) {}
+
+
 class Lexer(str code, int p) {
 
     whitespace() {
@@ -6,17 +74,71 @@ class Lexer(str code, int p) {
         }
     }
 
-    next {
-        @whitespace()
-        while @p < #len(@code) {
-            #print(@code[@p])
+    is_done bool {
+        return @p >= #len(@code)
+    }
+
+    letter() bool {
+        if @is_done() {
+            return false
+        }
+        def letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        def i = 0
+        while i < #len(letters) {
+            if letters[i] == @code[@p] {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    advance {
+        if @p < #len(@code) {
             @p = @p + 1
         }
     }
 
+    identifier() Token {
+        def start = @p
+        def val = ""
+        while @letter() {
+            val = val + @code[@p]
+            @p = @p + 1
+        }
+        def end = @p
+        return Token(val, start, end, Kind.identifier)
+    }
+
+    next Token {
+        def test = @is_done()
+        if test {
+            return nil
+        }
+        @whitespace()
+        while !@is_done() {
+            if @letter() {
+                return @identifier()
+            }
+            if @code[@p] == "(" {
+                #print("hello")
+            }
+            @advance()
+        }
+        return nil
+    }
+
+
 }
 
-def lexer = Lexer("          class hello", 0)
-lexer.next
+def lexer = Lexer(" class 1234 hello", 0)
+def token = lexer.next
+#print(token)
+
+token = lexer.next
+#print(token)
+
+token = lexer.next
+#print(token)
 
 

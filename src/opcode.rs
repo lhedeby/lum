@@ -35,6 +35,7 @@ pub enum OpCode {
     IndexGet,
     IndexSet,
     PushSelf,
+    Print(usize)
 }
 
 

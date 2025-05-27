@@ -86,10 +86,8 @@ impl Compiler {
             while len > vars.len() {
                 len -= 1;
                 self.code.push(OpCode::Pop);
-                println!("len!")
             }
         }
-        println!("ending scope vars; {:?}", self.variables);
         self.depth -= 1;
     }
 
@@ -318,8 +316,6 @@ impl Compiler {
                 None
             }
             Node::Method { name, args, lhs } => {
-                println!("method! with name {name}");
-                println!("lhs: {:?}", lhs);
                 let class_name = if let Some(lhs) = lhs {
                     match self.compile(lhs) {
                         Some(Type::Class(name)) => name,
@@ -376,13 +372,18 @@ impl Compiler {
                     "len" => (3, 1, Some(Type::Int)),
                     _ => panic!("no native function, {}", name),
                 };
-                if args.len() != arity {
+                if num != 0 && args.len() != arity {
                     panic!("wrong amount of arguments")
                 }
                 for arg in args {
                     self.compile(arg);
                 }
-                self.code.push(OpCode::Native(num));
+                match num {
+                    0 => {
+                        self.code.push(OpCode::Print(args.len()))
+                    }
+                    _ =>self.code.push(OpCode::Native(num))
+                }
                 kind
             }
             Node::EqualEqual { lhs, rhs } => {
@@ -406,7 +407,7 @@ impl Compiler {
             Node::Return(node) => {
                 let kind = self.compile(node);
                 if let Some(k) = self.current_return_kind.last() {
-                    if kind != *k {
+                    if kind.is_some() && kind != *k {
                         panic!("return kind '{:?}' does not match method '{:?}'", kind, k)
                     }
                     self.code.push(OpCode::Return);
