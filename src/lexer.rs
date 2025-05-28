@@ -71,7 +71,17 @@ impl<'a> Iterator for Lexer<'a> {
                     '"' => {
                         let mut buf = String::new();
                         while self.chars.peek().is_some_and(|x| *x != '"') {
-                            buf.push(self.chars.next().unwrap())
+                            //let next = self.chars.next().unwrap();
+                            match self.chars.next().unwrap() {
+                                '\\' => {
+                                    match self.chars.next().unwrap() {
+                                        '"' => buf.push('"'),
+                                        _ => panic!("unrecognized escape character")
+                                    }
+                                }
+                                c => buf.push(c),
+                            }
+                            //buf.push(self.chars.next().unwrap())
                         }
                         _ = self.chars.next();
 

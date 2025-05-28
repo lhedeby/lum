@@ -101,7 +101,7 @@ impl Vm {
                             let new_string = self.strings[s1].clone() + &self.strings[s2];
                             stack.push(Value::String(self.strings.len()));
                             self.strings.push(new_string);
-                        },
+                        }
                         _ => panic!("cant add"),
                     }
                     ip += 1;
@@ -142,7 +142,6 @@ impl Vm {
                         values.push(stack.pop().unwrap())
                     }
 
-
                     while let Some(v) = values.pop() {
                         write!(out, "{}", self.get_value_as_str(&v)).unwrap();
                         if !values.is_empty() {
@@ -176,13 +175,16 @@ impl Vm {
                                     Ok(s) => s,
                                     Err(e) => format!("Error reading file: {}", e),
                                 };
+                                println!("content: {:?}", content);
                                 stack.push(Value::String(self.strings.len()));
                                 self.strings.push(content);
                             }
                             _ => panic!("expected a string"),
                         },
                         3 => match stack.pop().unwrap() {
-                            Value::String(s) => stack.push(Value::Int(self.strings[s].len() as i32)),
+                            Value::String(s) => {
+                                stack.push(Value::Int(self.strings[s].len() as i32))
+                            }
                             Value::List(s) => stack.push(Value::Int(self.lists[s].len() as i32)),
                             _ => stack.push(Value::Nil),
                         },
@@ -284,6 +286,9 @@ impl Vm {
                         }
                         (Value::List(v1), Value::List(v2)) => v1 == v2,
                         (Value::Instance(v1), Value::Instance(v2)) => v1 == v2,
+                        (Value::Nil, Value::Nil) => true,
+                        (Value::Nil, _) => false,
+                        (_, Value::Nil) => false,
                         (p1, p2) => panic!("cant compare types '{:?}', '{:?}'", p1, p2),
                     };
 
@@ -302,6 +307,9 @@ impl Vm {
                         }
                         (Value::List(v1), Value::List(v2)) => v1 != v2,
                         (Value::Instance(v1), Value::Instance(v2)) => v1 != v2,
+                        (Value::Nil, Value::Nil) => false,
+                        (Value::Nil, _) => true,
+                        (_, Value::Nil) => true,
                         _ => panic!("cant compare types"),
                     };
 
