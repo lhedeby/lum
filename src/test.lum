@@ -226,14 +226,24 @@ class Lexer(str code, int p) {
         }
         return nil
     }
+}
 
+class Node(
+    str kind,
+) {}
 
+class Parser(Lexer lexer, int p) {
+
+    parse_root {
+        def root_vec = []<Node>
+    }
 }
 
 def input = #read_file("./src/sample.lum")
 #print(input)
 
 def lexer = Lexer(input, 0)
+
 
 def done = false
 
@@ -244,4 +254,12 @@ while !done {
     }
     #print(token)
 }
+
+lexer.p = 0
+
+
+
+def parser = Parser(lexer, 0)
+
+
 

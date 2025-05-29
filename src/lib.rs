@@ -17,7 +17,7 @@ pub fn run_file(path: &str) {
 
     let start = Instant::now();
     let root = Parser::parse_file(path);
-    //root.pretty_print("", true);
+    root.pretty_print("", true);
 
 
     let mut compiler = Compiler::new();
@@ -25,7 +25,7 @@ pub fn run_file(path: &str) {
 
     let bytecode = compiler.code;
     let strings = compiler.strings;
-    //println!("\nBytecode: {:?}\n", bytecode);
+    println!("\nBytecode: {:?}\n", bytecode);
     let mut vm = Vm::new(bytecode, strings);
     vm.run(&mut stdout());
     println!("\n");
