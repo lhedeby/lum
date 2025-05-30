@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     lexer::{Lexer, Token},
-    node::{Function, Node, Param},
+    node::{Function, Node},
 };
 
 pub struct Parser<'a> {
@@ -48,7 +48,7 @@ impl Parser<'_> {
                 Token::Def => self.def(),
                 Token::LeftBracket => self.list(),
                 Token::Class => self.class(),
-                Token::Identifier(d) => {
+                Token::Identifier(_) => {
                     let expr = self.expr();
                     match expr {
                         Node::Method { .. } | Node::Call { .. } | Node::Get { .. } => Node::Pop {
@@ -218,14 +218,14 @@ impl Parser<'_> {
         }
     }
 
-    fn param_list(&mut self) -> Vec<Param> {
+    fn param_list(&mut self) -> Vec<String> {
         self.consume(Token::LeftParen);
         let mut params = vec![];
         if self.lexer.peek() != Some(&Token::RightParen) {
             loop {
                 let name = self.consume_identifier();
 
-                params.push(Param { name });
+                params.push(name);
                 match self.lexer.peek() {
                     Some(Token::Comma) => _ = self.lexer.next(),
                     Some(Token::RightParen) => {

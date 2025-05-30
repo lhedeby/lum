@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::node::{Node, Param};
+use crate::node::{Node};
 use crate::opcode::OpCode;
 
 pub struct Compiler {
@@ -9,7 +9,7 @@ pub struct Compiler {
     variables: Vec<HashMap<String, Local>>,
     depth: usize,
     classes: Vec<Class>,
-    current_fields: Option<Vec<Param>>,
+    current_fields: Option<Vec<String>>,
     current_class_name: Option<String>,
 }
 
@@ -22,14 +22,14 @@ struct Local {
 #[derive(Debug)]
 struct Class {
     name: String,
-    fields: Vec<Param>,
+    fields: Vec<String>,
     functions: Vec<CompilerFunction>,
 }
 
 #[derive(Debug)]
 struct CompilerFunction {
     name: String,
-    pub params: Vec<Param>,
+    //pub params: Vec<String>,
     pub code_start: usize,
 }
 
@@ -123,7 +123,7 @@ impl Compiler {
                 self.strings.push(s.to_string());
             }
             Node::Index { lhs, indexer } => {
-                let kind = self.compile(lhs);
+                self.compile(lhs);
                 self.compile(indexer);
                 self.code.push(OpCode::IndexGet);
             }
@@ -214,13 +214,13 @@ impl Compiler {
                 for f in functions {
                     self.begin_fun();
                     for pp in &f.params {
-                        self.add_local(&pp.name);
+                        self.add_local(&pp);
                     }
                     let code_start = self.code.len();
                     self.compile(&f.block);
                     let cf = CompilerFunction {
                         name: f.name.to_string(),
-                        params: f.params.to_vec(),
+                        //params: f.params.to_vec(),
                         code_start,
                     };
                     self.classes.last_mut().unwrap().functions.push(cf);
@@ -278,7 +278,7 @@ impl Compiler {
                     }
 
                     let field_names: Vec<String> =
-                        class.fields.iter().rev().map(|f| f.name.clone()).collect();
+                        class.fields.iter().rev().map(|f| f.clone()).collect();
                     let function_names: Vec<String> =
                         class.functions.iter().map(|f| f.name.clone()).collect();
                     let function_starts: Vec<usize> = class

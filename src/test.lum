@@ -155,7 +155,7 @@ class Lexer(code, p) {
             return Token(val, start, end, keyword)
         }
         #print("here?")
-        return Token(val, start, end, Kind().identifier())
+        return Token(val, start, end, Kind.identifier())
     }
 
     number() {
@@ -246,6 +246,8 @@ while !done {
 }
 
 lexer.p = 0
+
+
 
 
 

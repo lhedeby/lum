@@ -36,7 +36,7 @@ pub enum Node {
     },
     Class {
         name: String,
-        fields: Vec<Param>,
+        fields: Vec<String>,
         functions: Vec<Function>,
     },
     Block {
@@ -117,13 +117,8 @@ pub enum Node {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
-    pub params: Vec<Param>,
+    pub params: Vec<String>,
     pub block: Node,
-}
-
-#[derive(Debug, Clone)]
-pub struct Param {
-    pub name: String,
 }
 
 impl Node {
@@ -213,7 +208,7 @@ impl Node {
                     } else {
                         "├── "
                     };
-                    println!("{}Field: {}", marker, param.name);
+                    println!("{}Field: {}", marker, param);
                 }
 
                 for (i, func) in functions.iter().enumerate() {
@@ -240,7 +235,7 @@ impl Node {
                         } else {
                             "├── "
                         };
-                        println!("{}Param: {}", marker, param.name);
+                        println!("{}Param: {}", marker, param);
                     }
 
                     // Function block
