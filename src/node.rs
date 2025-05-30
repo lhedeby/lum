@@ -13,7 +13,6 @@ pub enum Node {
     },
     List {
         items: Vec<Node>,
-        kind: Type,
     },
     Index {
         lhs: Box<Node>,
@@ -120,24 +119,11 @@ pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
     pub block: Node,
-    pub return_kind: Option<Type>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Param {
     pub name: String,
-    pub kind: Type,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Type {
-    Int,
-    Float,
-    List(Box<Type>),
-    String,
-    Bool,
-    Map,
-    Class(String),
 }
 
 impl Node {
@@ -204,8 +190,8 @@ impl Node {
                 indexer.pretty_print(&new_indent, false);
                 rhs.pretty_print(&new_indent, true);
             }
-            Node::List { items, kind } => {
-                println!("List<{:?}>", kind);
+            Node::List { items } => {
+                println!("List");
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 for (i, elem) in items.iter().enumerate() {
                     elem.pretty_print(&new_indent, i == items.len() - 1);
@@ -227,7 +213,7 @@ impl Node {
                     } else {
                         "├── "
                     };
-                    println!("{}Field: {} : {:?}", marker, param.name, param.kind);
+                    println!("{}Field: {}", marker, param.name);
                 }
 
                 for (i, func) in functions.iter().enumerate() {
@@ -247,20 +233,14 @@ impl Node {
                     );
 
                     for (j, param) in func.params.iter().enumerate() {
-                        let is_last_param =
-                            func.return_kind.is_none() && j == func.params.len() - 1;
+                        let is_last_param = j == func.params.len() - 1;
                         print!("{}", func_indent);
                         let marker = if is_last_param {
                             "└── "
                         } else {
                             "├── "
                         };
-                        println!("{}Param: {} : {:?}", marker, param.name, param.kind);
-                    }
-
-                    if let Some(ret) = &func.return_kind {
-                        print!("{}", func_indent);
-                        println!("├── Returns: {:?}", ret);
+                        println!("{}Param: {}", marker, param.name);
                     }
 
                     // Function block

@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     lexer::{Lexer, Token},
-    node::{Function, Node, Param, Type},
+    node::{Function, Node, Param},
 };
 
 pub struct Parser<'a> {
@@ -155,20 +155,6 @@ impl Parser<'_> {
         }
     }
 
-    fn var_type(&mut self) -> Option<Type> {
-        let kind = match self.lexer.peek() {
-            Some(Token::Int) => Type::Int,
-            Some(Token::Float) => Type::Float,
-            Some(Token::Bool) => Type::Bool,
-            Some(Token::Str) => Type::String,
-            //Some(TokenKind::Map) => Type::Map,
-            Some(Token::Identifier(name)) => Type::Class(name.to_string()),
-            _ => return None,
-        };
-        _ = self.lexer.next();
-        Some(kind)
-    }
-
     fn block(&mut self) -> Node {
         self.consume(Token::LeftBrace);
 
@@ -208,7 +194,6 @@ impl Parser<'_> {
                                                                 // _ => panic!("expected '(' or '{{'"),
                 };
                 //let params = self.param_list();
-                let return_kind = self.var_type();
 
                 let block = self.block();
 
@@ -216,7 +201,6 @@ impl Parser<'_> {
                     name,
                     params,
                     block,
-                    return_kind,
                 });
                 match self.lexer.peek() {
                     Some(Token::RightBrace) => {
@@ -239,10 +223,9 @@ impl Parser<'_> {
         let mut params = vec![];
         if self.lexer.peek() != Some(&Token::RightParen) {
             loop {
-                let kind = self.var_type().expect("must have type");
                 let name = self.consume_identifier();
 
-                params.push(Param { name, kind });
+                params.push(Param { name });
                 match self.lexer.peek() {
                     Some(Token::Comma) => _ = self.lexer.next(),
                     Some(Token::RightParen) => {
@@ -370,7 +353,14 @@ impl Parser<'_> {
             Token::At => self.field(),
             Token::Hash => self.native(),
             Token::LeftParen => self.grouping(),
-            t => panic!("Unexpected token {} in parse_prefix()", t),
+            t => {
+                while let Some(test) = self.lexer.next() {
+                    println!("{}", test)
+                }
+                panic!("Unexpected token {} in parse_prefix()", t)
+
+            }
+                ,
         }
     }
 
@@ -445,15 +435,7 @@ impl Parser<'_> {
         }
         _ = self.lexer.next();
 
-        self.consume(Token::Less);
-
-        let kind = match self.var_type() {
-            Some(s) => s,
-            None => panic!("expected type"),
-        };
-
-        self.consume(Token::Greater);
-        Node::List { items, kind }
+        Node::List { items }
     }
     fn identifier(&mut self, name: String) -> Node {
         Node::GetVar(name)

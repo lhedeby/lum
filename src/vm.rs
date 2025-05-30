@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 
 use crate::opcode::OpCode;
 
@@ -6,8 +6,14 @@ pub struct Vm {
     code: Vec<OpCode>,
     strings: Vec<String>,
     lists: Vec<Vec<Value>>,
-    instances: Vec<Vec<Value>>,
+    instances: Vec<InstanceObj>,
     call_stack: Vec<CallFrame>,
+}
+
+#[derive(Debug)]
+struct InstanceObj {
+    variables: HashMap<String, Value>,
+    methods: HashMap<String, usize>,
 }
 
 struct CallFrame {
@@ -70,12 +76,22 @@ impl Vm {
                     self.lists.push(list);
                     ip += 1;
                 }
-                OpCode::Instance(i) => {
-                    let mut instance = vec![];
-                    for _ in 0..i {
-                        instance.push(stack.pop().unwrap())
+                OpCode::Instance(ref field_names, ref function_names, ref starts) => {
+                    let mut instance = InstanceObj {
+                        variables: HashMap::new(),
+                        methods: HashMap::new(),
+                    };
+                    for name in field_names {
+                        instance
+                            .variables
+                            .insert(name.clone(), stack.pop().unwrap());
                     }
-                    instance.reverse();
+
+                    for i in 0..(starts.len()) {
+                        instance
+                            .methods
+                            .insert(function_names[i].clone(), starts[i]);
+                    }
                     stack.push(Value::Instance(self.instances.len()));
                     self.instances.push(instance);
                     ip += 1;
@@ -192,40 +208,50 @@ impl Vm {
                     }
                     ip += 1;
                 }
-                OpCode::SetField(f) => {
+                OpCode::SetField(ref f) => {
                     let val = stack.pop().unwrap();
-                    let instance = match stack.get(stack_offset) {
+                    match stack.get(stack_offset) {
                         Some(Value::Instance(instance)) => {
-                            self.instances.get_mut(*instance).unwrap()
+                            if let Some(test) = self.instances[*instance].variables.get_mut(f) {
+                                *test = val
+                            } else {
+                                panic!("no field named {}", f)
+                            }
                         }
                         Some(_) => panic!("must be instance"),
                         None => panic!("unexpected none"),
                     };
-                    instance[f] = val;
                     ip += 1;
                 }
-                OpCode::GetField(f) => {
+                OpCode::GetField(ref f) => {
                     let instance = match stack.get(stack_offset) {
                         Some(Value::Instance(instance)) => self.instances.get(*instance).unwrap(),
                         Some(_) => panic!("must be instance"),
                         None => panic!("unexpected none"),
                     };
-                    let val = instance.get(f).unwrap();
+                    let val = instance.variables.get(f).unwrap();
                     stack.push(val.clone());
                     ip += 1;
                 }
-                OpCode::Get(idx) => {
+                OpCode::Get(ref f) => {
+                    println!("get : {}", f);
                     let obj = match stack.pop().unwrap() {
-                        Value::Instance(o) => self.instances[o][idx].clone(),
+                        Value::Instance(o) => self.instances[o].variables[f].clone(),
                         p => panic!("get must be on instance {:?}", p),
                     };
                     stack.push(obj);
                     ip += 1;
                 }
-                OpCode::Set(idx) => {
+                OpCode::Set(ref f) => {
                     let value = stack.pop().unwrap();
                     match stack.pop().unwrap() {
-                        Value::Instance(o) => self.instances[o][idx] = value,
+                        Value::Instance(o) => {
+                            if let Some(test) = self.instances[o].variables.get_mut(f) {
+                                *test = value
+                            } else {
+                                panic!("no field named {}", f)
+                            }
+                        }
                         p => panic!("get must be on instance {:?}", p),
                     };
                     ip += 1;
@@ -236,14 +262,21 @@ impl Vm {
                     stack.push(stack[stack_offset].clone());
                     ip += 1;
                 }
-                OpCode::Call(pos, arity) => {
+                OpCode::Call(ref name, arity) => {
                     stack_offset = stack.len() - arity;
                     self.call_stack.push(CallFrame {
                         return_pos: ip + 1,
                         // arity,
                         stack_offset,
                     });
-                    ip = pos;
+
+                    match stack[stack_offset] {
+                        Value::Instance(i) => {
+                            let iobc = &self.instances[i];
+                            ip = iobc.methods[name];
+                        }
+                        _ => panic!("not instance"),
+                    }
                 }
                 OpCode::Return => {
                     let value = stack.pop().unwrap();
@@ -401,6 +434,7 @@ impl Vm {
             }
         }
     }
+
     fn get_value_as_str(&self, val: &Value) -> String {
         match val {
             Value::Bool(b) => format!("{}", b),
@@ -418,8 +452,9 @@ impl Vm {
             Value::Instance(i) => format!(
                 "{{{}}}",
                 self.instances[*i]
+                    .variables
                     .iter()
-                    .map(|x| self.get_value_as_str(x))
+                    .map(|(_idx, x)| self.get_value_as_str(x))
                     .collect::<Vec<String>>()
                     .join(", ")
             ),

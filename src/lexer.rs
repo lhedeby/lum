@@ -10,6 +10,10 @@ impl<'a> Lexer<'a> {
             chars: src.chars().peekable(),
         }
     }
+
+    pub fn test(&self) -> String {
+        return self.chars.clone().collect();
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -73,12 +77,10 @@ impl<'a> Iterator for Lexer<'a> {
                         while self.chars.peek().is_some_and(|x| *x != '"') {
                             //let next = self.chars.next().unwrap();
                             match self.chars.next().unwrap() {
-                                '\\' => {
-                                    match self.chars.next().unwrap() {
-                                        '"' => buf.push('"'),
-                                        _ => panic!("unrecognized escape character")
-                                    }
-                                }
+                                '\\' => match self.chars.next().unwrap() {
+                                    '"' => buf.push('"'),
+                                    _ => panic!("unrecognized escape character"),
+                                },
                                 c => buf.push(c),
                             }
                             //buf.push(self.chars.next().unwrap())
@@ -131,12 +133,6 @@ fn keywords(s: &str) -> Option<Token> {
         "true" => Token::BoolValue(true),
         "false" => Token::BoolValue(false),
         "def" => Token::Def,
-        // types
-        "int" => Token::Int,
-        "float" => Token::Float,
-        "bool" => Token::Bool,
-        "str" => Token::Str,
-        // "map" => TokenKind::Map,
         _ => return None,
     })
 }
@@ -185,14 +181,6 @@ pub enum Token {
     IntValue(i32),
     Identifier(String),
 
-    // types
-    Int,
-    Float,
-    //Arr, // todo should this exist?
-    Bool,
-    Str,
-    //Map,
-
     // keywords
     BoolValue(bool), // kindof...
     //Var,
@@ -240,11 +228,6 @@ impl Display for Token {
             Token::FloatValue(v) => write!(f, "{}", v),
             Token::IntValue(v) => write!(f, "{}", v),
             Token::Identifier(v) => write!(f, "{}", v),
-            Token::Int => write!(f, "int"),
-            Token::Float => write!(f, "float"),
-            Token::Bool => write!(f, "bool"),
-            Token::Str => write!(f, "str"),
-            //TokenKind::Map => write!(f, ""),
             Token::BoolValue(v) => write!(f, "{}", v),
             Token::Def => write!(f, "def"),
             Token::And => write!(f, "and"),

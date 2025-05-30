@@ -32,8 +32,8 @@ fn r#while() {
 #[test]
 fn classes() {
     let code = r#"
-        class foo(int i, int j) {
-            bar(int a) {
+        class foo(i, j) {
+            bar(a) {
                 #print("BAR")
                 #print(#to_string(@i))
                 @i = 9
@@ -56,7 +56,7 @@ fn classes() {
 #[test]
 fn list() {
     let code = r#"
-        def a = [1+5,2,3]<int>
+        def a = [1+5,2,3]
         #print(#to_string(a))
     "#;
     let expected = "[6, 2, 3]\n";
@@ -66,8 +66,8 @@ fn list() {
 #[test]
 fn nested_instances() {
     let code = r#"
-        class foo(int i, int j) {}
-        class bar(foo f) {}
+        class foo(i, j) {}
+        class bar(f) {}
 
         def f = foo(1, 2)
         def b = bar(f)
@@ -157,8 +157,8 @@ fn comparison() {
 #[test]
 fn class_return() {
     let code = r#"
-        class foo(int i, int j) {
-            bar() int {
+        class foo(i, j) {
+            bar() {
                 def k = @i + @j
                 def b = 2
                 return b
@@ -178,7 +178,7 @@ fn class_return() {
 #[test]
 fn index() {
     let code = r#"
-        def hello = [1,2,3]<int>
+        def hello = [1,2,3]
         hello[0] = 55
         hello[2] = 22
         #print(#to_string(hello))
@@ -190,8 +190,8 @@ fn index() {
 #[test]
 fn fib() {
     let code = r#"
-        class fib(int curr, int prev) {
-            next() int {
+        class fib(curr, prev) {
+            next() {
                 def res = @prev + @curr
                 @prev = @curr
                 @curr = res
