@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     lexer::{Lexer, Token},
-    node::{Function, Node},
+    node::{Method, Node},
 };
 
 pub struct Parser<'a> {
@@ -51,9 +51,11 @@ impl Parser<'_> {
                 Token::Identifier(_) => {
                     let expr = self.expr();
                     match expr {
-                        Node::Method { .. } | Node::Call { .. } | Node::Get { .. } => Node::Pop {
-                            expr: Box::new(expr),
-                        },
+                        Node::Method { .. } | Node::Instance { .. } | Node::Get { .. } => {
+                            Node::Pop {
+                                expr: Box::new(expr),
+                            }
+                        }
                         n => n,
                     }
                 }
@@ -182,7 +184,7 @@ impl Parser<'_> {
         };
 
         self.consume(Token::LeftBrace);
-        let mut functions = vec![];
+        let mut methods = vec![];
         if self.lexer.peek() != Some(&Token::RightBrace) {
             loop {
                 let name = self.consume_identifier();
@@ -190,14 +192,12 @@ impl Parser<'_> {
                 let params = match self.lexer.peek() {
                     Some(Token::LeftParen) => self.param_list(),
                     Some(_) => vec![],
-                    None => panic!("unexpected end of tokens"), // Some(Token::LeftBrace) => vec![],
-                                                                // _ => panic!("expected '(' or '{{'"),
+                    None => panic!("unexpected end of tokens"),
                 };
-                //let params = self.param_list();
 
                 let block = self.block();
 
-                functions.push(Function {
+                methods.push(Method {
                     name,
                     params,
                     block,
@@ -214,7 +214,7 @@ impl Parser<'_> {
         Node::Class {
             name,
             fields,
-            functions,
+            methods,
         }
     }
 
@@ -255,15 +255,15 @@ impl Parser<'_> {
         while let Some(token) = self.lexer.peek().cloned() {
             match token {
                 Token::LeftParen => {
-                    self.lexer.next(); // consume '('
+                    self.consume(Token::LeftParen);
                     lhs = self.call(lhs);
                 }
                 Token::LeftBracket => {
-                    self.lexer.next(); // consume '['
+                    self.consume(Token::LeftBracket);
                     lhs = self.index(lhs);
                 }
                 Token::Dot => {
-                    self.lexer.next(); // consume '.'
+                    self.consume(Token::Dot);
                     lhs = self.get_or_set(lhs);
                 }
                 _ => {
@@ -354,13 +354,8 @@ impl Parser<'_> {
             Token::Hash => self.native(),
             Token::LeftParen => self.grouping(),
             t => {
-                while let Some(test) = self.lexer.next() {
-                    println!("{}", test)
-                }
                 panic!("Unexpected token {} in parse_prefix()", t)
-
             }
-                ,
         }
     }
 
@@ -389,7 +384,7 @@ impl Parser<'_> {
 
         match lhs {
             // native or instance
-            Node::GetVar(name) => Node::Call { name, args },
+            Node::GetVar(name) => Node::Instance { name, args },
             Node::Get { lhs, field } => Node::Method {
                 name: field,
                 args,
@@ -475,7 +470,6 @@ fn infix_precedence(kind: &Token) -> usize {
         Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual => 6,
         Token::Plus | Token::Minus => 7,
         Token::Star | Token::Slash => 8,
-        // TokenKind::Colon
         Token::LeftParen | Token::LeftBracket => 10,
         Token::Dot => 11,
         _ => 0,

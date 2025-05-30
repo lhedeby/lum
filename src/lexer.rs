@@ -10,10 +10,6 @@ impl<'a> Lexer<'a> {
             chars: src.chars().peekable(),
         }
     }
-
-    pub fn test(&self) -> String {
-        return self.chars.clone().collect();
-    }
 }
 
 impl<'a> Iterator for Lexer<'a> {

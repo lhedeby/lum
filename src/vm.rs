@@ -76,7 +76,7 @@ impl Vm {
                     self.lists.push(list);
                     ip += 1;
                 }
-                OpCode::Instance(ref field_names, ref function_names, ref starts) => {
+                OpCode::Instance(ref field_names, ref method_names, ref starts) => {
                     let mut instance = InstanceObj {
                         variables: HashMap::new(),
                         methods: HashMap::new(),
@@ -90,7 +90,7 @@ impl Vm {
                     for i in 0..(starts.len()) {
                         instance
                             .methods
-                            .insert(function_names[i].clone(), starts[i]);
+                            .insert(method_names[i].clone(), starts[i]);
                     }
                     stack.push(Value::Instance(self.instances.len()));
                     self.instances.push(instance);

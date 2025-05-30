@@ -23,13 +23,12 @@ struct Local {
 struct Class {
     name: String,
     fields: Vec<String>,
-    functions: Vec<CompilerFunction>,
+    methods: Vec<CompilerMethod>,
 }
 
 #[derive(Debug)]
-struct CompilerFunction {
+struct CompilerMethod {
     name: String,
-    //pub params: Vec<String>,
     pub code_start: usize,
 }
 
@@ -155,16 +154,16 @@ impl Compiler {
                             panic!("trying to call class without arguments")
                         }
 
-                        let function_names: Vec<String> =
-                            class.functions.iter().map(|f| f.name.clone()).collect();
-                        let function_starts: Vec<usize> = class
-                            .functions
+                        let method_names: Vec<String> =
+                            class.methods.iter().map(|f| f.name.clone()).collect();
+                        let method_starts: Vec<usize> = class
+                            .methods
                             .iter()
                             .map(|f| f.code_start.clone())
                             .collect();
 
                         self.code
-                            .push(OpCode::Instance(vec![], function_names, function_starts));
+                            .push(OpCode::Instance(vec![], method_names, method_starts));
                         return;
                     }
                     panic!("Could not find any variable with name '{}'", name)
@@ -186,13 +185,10 @@ impl Compiler {
             Node::GetField(name) => {
                 self.code.push(OpCode::GetField(name.clone()));
             }
-            // TODO: class functions (methods) should always return nil at the end of the method
-            // a stmt call node should probably be specified to pop the unused value, but
-            // otherwise we always want a value
             Node::Class {
                 name,
                 fields,
-                functions,
+                methods,
             } => {
                 self.current_fields = Some(fields.to_vec());
                 self.current_class_name = Some(name.clone());
@@ -203,7 +199,7 @@ impl Compiler {
                 let class = Class {
                     name: name.to_string(),
                     fields: fields.to_vec(),
-                    functions: vec![],
+                    methods: vec![],
                 };
 
                 if let Some(_) = self.classes.iter().find(|c| c.name == class.name) {
@@ -211,19 +207,19 @@ impl Compiler {
                 }
                 self.classes.push(class);
 
-                for f in functions {
+                for m in methods {
                     self.begin_fun();
-                    for pp in &f.params {
+                    for pp in &m.params {
                         self.add_local(&pp);
                     }
                     let code_start = self.code.len();
-                    self.compile(&f.block);
-                    let cf = CompilerFunction {
-                        name: f.name.to_string(),
+                    self.compile(&m.block);
+                    let cf = CompilerMethod {
+                        name: m.name.to_string(),
                         //params: f.params.to_vec(),
                         code_start,
                     };
-                    self.classes.last_mut().unwrap().functions.push(cf);
+                    self.classes.last_mut().unwrap().methods.push(cf);
                     self.code.push(OpCode::PushNil);
                     self.code.push(OpCode::Return);
                     self.end_fun();
@@ -250,9 +246,6 @@ impl Compiler {
                 self.code.push(OpCode::Pop);
             }
             Node::Method { name, args, lhs } => {
-                println!("method - name {name}");
-                println!("lhs {:?}", lhs);
-
                 if let Some(lhs) = lhs {
                     self.compile(lhs);
                 } else {
@@ -266,12 +259,7 @@ impl Compiler {
                 self.code
                     .push(OpCode::Call(name.to_string(), args.len() + 1))
             }
-            // TODO: Theres 3 different calls:
-            // NewInstance, Method, Native
-            // Should probably split these in the parser
-            // method is easy because its the only one with lhs
-            Node::Call { name, args } => {
-                println!("call - name: {name}");
+            Node::Instance { name, args } => {
                 if let Some(class) = self.classes.iter().find(|c| c.name == *name) {
                     if args.len() != class.fields.len() {
                         panic!("arity does not match")
@@ -279,10 +267,10 @@ impl Compiler {
 
                     let field_names: Vec<String> =
                         class.fields.iter().rev().map(|f| f.clone()).collect();
-                    let function_names: Vec<String> =
-                        class.functions.iter().map(|f| f.name.clone()).collect();
-                    let function_starts: Vec<usize> = class
-                        .functions
+                    let method_names: Vec<String> =
+                        class.methods.iter().map(|f| f.name.clone()).collect();
+                    let method_starts: Vec<usize> = class
+                        .methods
                         .iter()
                         .map(|f| f.code_start.clone())
                         .collect();
@@ -292,8 +280,8 @@ impl Compiler {
 
                     self.code.push(OpCode::Instance(
                         field_names,
-                        function_names,
-                        function_starts,
+                        method_names,
+                        method_starts,
                     ));
                     return;
                 }

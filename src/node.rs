@@ -37,7 +37,7 @@ pub enum Node {
     Class {
         name: String,
         fields: Vec<String>,
-        functions: Vec<Function>,
+        methods: Vec<Method>,
     },
     Block {
         stmts: Vec<Node>,
@@ -46,7 +46,7 @@ pub enum Node {
         name: String,
         expr: Box<Node>,
     },
-    Call {
+    Instance {
         name: String,
         args: Vec<Node>,
     },
@@ -115,7 +115,7 @@ pub enum Node {
 }
 
 #[derive(Debug, Clone)]
-pub struct Function {
+pub struct Method {
     pub name: String,
     pub params: Vec<String>,
     pub block: Node,
@@ -195,13 +195,13 @@ impl Node {
             Node::Class {
                 name,
                 fields,
-                functions,
+                methods,
             } => {
                 println!("Class: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
 
                 for (i, param) in fields.iter().enumerate() {
-                    let is_last_field = functions.is_empty() && i == fields.len() - 1;
+                    let is_last_field = methods.is_empty() && i == fields.len() - 1;
                     print!("{}", new_indent);
                     let marker = if is_last_field {
                         "└── "
@@ -211,25 +211,25 @@ impl Node {
                     println!("{}Field: {}", marker, param);
                 }
 
-                for (i, func) in functions.iter().enumerate() {
-                    let is_last_func = i == functions.len() - 1;
+                for (i, method) in methods.iter().enumerate() {
+                    let is_last_method = i == methods.len() - 1;
                     print!("{}", new_indent);
-                    let marker = if is_last_func {
+                    let marker = if is_last_method {
                         "└── "
                     } else {
                         "├── "
                     };
-                    println!("{}Function: {}", marker, func.name);
+                    println!("{}Method: {}", marker, method.name);
 
-                    let func_indent = format!(
+                    let method_indent = format!(
                         "{}{}",
                         new_indent,
-                        if is_last_func { "    " } else { "│   " }
+                        if is_last_method { "    " } else { "│   " }
                     );
 
-                    for (j, param) in func.params.iter().enumerate() {
-                        let is_last_param = j == func.params.len() - 1;
-                        print!("{}", func_indent);
+                    for (j, param) in method.params.iter().enumerate() {
+                        let is_last_param = j == method.params.len() - 1;
+                        print!("{}", method_indent);
                         let marker = if is_last_param {
                             "└── "
                         } else {
@@ -238,8 +238,7 @@ impl Node {
                         println!("{}Param: {}", marker, param);
                     }
 
-                    // Function block
-                    func.block.pretty_print(&func_indent, true);
+                    method.block.pretty_print(&method_indent, true);
                 }
             }
             Node::Block { stmts } => {
@@ -254,7 +253,7 @@ impl Node {
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 expr.pretty_print(&new_indent, true);
             }
-            Node::Call { name, args } => {
+            Node::Instance { name, args } => {
                 println!("Call: {}", name);
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 for (i, arg) in args.iter().enumerate() {
