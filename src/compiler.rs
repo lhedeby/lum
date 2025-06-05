@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::node::{Node};
+use crate::node::Node;
 use crate::opcode::OpCode;
 
 pub struct Compiler {
@@ -156,11 +156,8 @@ impl Compiler {
 
                         let method_names: Vec<String> =
                             class.methods.iter().map(|f| f.name.clone()).collect();
-                        let method_starts: Vec<usize> = class
-                            .methods
-                            .iter()
-                            .map(|f| f.code_start.clone())
-                            .collect();
+                        let method_starts: Vec<usize> =
+                            class.methods.iter().map(|f| f.code_start.clone()).collect();
 
                         self.code
                             .push(OpCode::Instance(vec![], method_names, method_starts));
@@ -216,7 +213,6 @@ impl Compiler {
                     self.compile(&m.block);
                     let cf = CompilerMethod {
                         name: m.name.to_string(),
-                        //params: f.params.to_vec(),
                         code_start,
                     };
                     self.classes.last_mut().unwrap().methods.push(cf);
@@ -269,20 +265,14 @@ impl Compiler {
                         class.fields.iter().rev().map(|f| f.clone()).collect();
                     let method_names: Vec<String> =
                         class.methods.iter().map(|f| f.name.clone()).collect();
-                    let method_starts: Vec<usize> = class
-                        .methods
-                        .iter()
-                        .map(|f| f.code_start.clone())
-                        .collect();
+                    let method_starts: Vec<usize> =
+                        class.methods.iter().map(|f| f.code_start.clone()).collect();
                     for arg in args {
                         self.compile(arg);
                     }
 
-                    self.code.push(OpCode::Instance(
-                        field_names,
-                        method_names,
-                        method_starts,
-                    ));
+                    self.code
+                        .push(OpCode::Instance(field_names, method_names, method_starts));
                     return;
                 }
                 panic!("No class with name '{name}'");
@@ -293,6 +283,7 @@ impl Compiler {
                     "to_string" => (1, 1),
                     "read_file" => (2, 1),
                     "len" => (3, 1),
+                    "err" => (4, 1),
                     _ => panic!("no native function, {}", name),
                 };
                 if num != 0 && args.len() != arity {
@@ -384,6 +375,9 @@ impl Compiler {
                 self.compile(lhs);
                 self.compile(rhs);
                 self.code.push(OpCode::Set(field.to_string()));
+            }
+            Node::GetSelf => {
+                self.code.push(OpCode::PushSelf)
             }
         }
     }

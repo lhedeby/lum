@@ -43,7 +43,7 @@ impl Parser<'_> {
 
     fn stmt(&mut self) -> Node {
         if let Some(token) = self.lexer.peek() {
-            let node = match token {
+            match token {
                 Token::LeftBrace => self.block(),
                 Token::Def => self.def(),
                 Token::LeftBracket => self.list(),
@@ -70,12 +70,41 @@ impl Parser<'_> {
                         expr: Box::new(self.native()),
                     }
                 }
+                Token::Import => self.import(),
                 t => panic!("Unexpected token '{}' in stmt()", t),
-            };
-            node
+            }
         } else {
             panic!("unexpected end of tokens")
         }
+    }
+
+    fn import(&mut self) -> Node {
+        self.consume(Token::Import);
+        self.consume(Token::LeftBrace);
+        let mut imports = vec![];
+        loop {
+            match self.lexer.next() {
+                Some(Token::String(s)) => {
+                    let mut iter = self.src.split("/").peekable();
+                    let mut path_buf = String::new();
+
+                    while let Some(part) = iter.next() {
+                        if iter.peek().is_some() {
+                            path_buf.push_str(part);
+                            path_buf.push('/');
+                        }
+                    }
+
+                    path_buf.push_str(&s);
+                    imports.push(Parser::parse_file(&path_buf));
+                }
+                Some(Token::Comma) => {}
+                Some(Token::RightBrace) => break,
+                Some(t) => panic!("undexpected token {}", t),
+                None => break,
+            }
+        }
+        Node::Block { stmts: imports }
     }
 
     fn native(&mut self) -> Node {
@@ -360,9 +389,14 @@ impl Parser<'_> {
     }
 
     fn field(&mut self) -> Node {
-        match self.lexer.next() {
-            Some(Token::Identifier(name)) => Node::GetField(name),
-            _ => panic!("expected identifier"),
+
+        match self.lexer.peek() {
+            Some(Token::Identifier(_)) => {
+                let name = self.consume_identifier();
+                Node::GetField(name)
+            },
+            Some(_) => return Node::GetSelf,
+            None => panic!("unexpected end of tokens")
         }
     }
 

@@ -112,6 +112,7 @@ pub enum Node {
         field: String,
         rhs: Box<Node>,
     },
+    GetSelf,
 }
 
 #[derive(Debug, Clone)]
@@ -360,6 +361,9 @@ impl Node {
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 lhs.pretty_print(&new_indent, false);
                 rhs.pretty_print(&new_indent, true);
+            }
+            Node::GetSelf => {
+                println!("GetSelf");
             }
         }
     }

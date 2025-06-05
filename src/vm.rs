@@ -88,9 +88,7 @@ impl Vm {
                     }
 
                     for i in 0..(starts.len()) {
-                        instance
-                            .methods
-                            .insert(method_names[i].clone(), starts[i]);
+                        instance.methods.insert(method_names[i].clone(), starts[i]);
                     }
                     stack.push(Value::Instance(self.instances.len()));
                     self.instances.push(instance);
@@ -189,7 +187,7 @@ impl Vm {
                             Value::String(s) => {
                                 let content = match std::fs::read_to_string(&self.strings[s]) {
                                     Ok(s) => s,
-                                    Err(e) => format!("Error reading file: {}", e),
+                                    Err(e) => format!("Error reading file: {} - {}", self.strings[s], e),
                                 };
                                 println!("content: {:?}", content);
                                 stack.push(Value::String(self.strings.len()));
@@ -197,12 +195,22 @@ impl Vm {
                             }
                             _ => panic!("expected a string"),
                         },
+                        // #len
                         3 => match stack.pop().unwrap() {
                             Value::String(s) => {
                                 stack.push(Value::Int(self.strings[s].len() as i32))
                             }
                             Value::List(s) => stack.push(Value::Int(self.lists[s].len() as i32)),
                             _ => stack.push(Value::Nil),
+                        },
+                        // #err
+                        4 => match stack.pop() {
+                            Some(v) => {
+                                panic!("err: {}", self.get_value_as_str(&v))
+                            }
+                            None => {
+                                panic!("err")
+                            }
                         },
                         _ => panic!("native function {} not found", n),
                     }
@@ -234,9 +242,15 @@ impl Vm {
                     ip += 1;
                 }
                 OpCode::Get(ref f) => {
-                    println!("get : {}", f);
                     let obj = match stack.pop().unwrap() {
-                        Value::Instance(o) => self.instances[o].variables[f].clone(),
+                        Value::Instance(o) => self
+                            .instances
+                            .get(o)
+                            .expect("instace out of range")
+                            //.variables[f]
+                            .variables.get(f)
+                            .expect(&format!("could not find variable {}", f))
+                            .clone(),
                         p => panic!("get must be on instance {:?}", p),
                     };
                     stack.push(obj);
