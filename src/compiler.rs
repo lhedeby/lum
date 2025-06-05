@@ -284,6 +284,7 @@ impl Compiler {
                     "read_file" => (2, 1),
                     "len" => (3, 1),
                     "err" => (4, 1),
+                    "append" => (5, 2),
                     _ => panic!("no native function, {}", name),
                 };
                 if num != 0 && args.len() != arity {

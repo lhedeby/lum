@@ -212,6 +212,17 @@ impl Vm {
                                 panic!("err")
                             }
                         },
+                        5 => {
+                            let val = stack.pop().unwrap();
+                            let list = stack.pop().unwrap();
+                            match list {
+                                Value::List(l) => {
+                                    self.lists[l].push(val);
+                                    stack.push(Value::Nil)
+                                }
+                                _ => panic!("trying to push to something thats not a list")
+                            }
+                        }
                         _ => panic!("native function {} not found", n),
                     }
                     ip += 1;
