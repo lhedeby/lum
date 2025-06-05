@@ -1,0 +1,7 @@
+
+
+def foo = []
+#print(foo)
+#append(foo, 123)
+#append(foo, "a string")
+#print(foo)

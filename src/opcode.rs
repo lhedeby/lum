@@ -11,6 +11,7 @@ pub enum OpCode {
     GetLocal(usize),
     Jump(usize),
     Plus,
+    Minus,
     Native(usize),
     PushString(usize),
     List(usize),

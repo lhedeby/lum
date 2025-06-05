@@ -343,6 +343,10 @@ impl Parser<'_> {
                             lhs: Box::new(lhs),
                             rhs: Box::new(rhs),
                         },
+                        Token::Minus => Node::Minus {
+                            lhs: Box::new(lhs),
+                            rhs: Box::new(rhs),
+                        },
                         Token::Equal => match lhs {
                             Node::Get { lhs, field } => Node::Set {
                                 lhs,

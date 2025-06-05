@@ -175,6 +175,11 @@ impl Compiler {
                 self.compile(rhs);
                 self.code.push(OpCode::Plus);
             }
+            Node::Minus { lhs, rhs } => {
+                self.compile(lhs);
+                self.compile(rhs);
+                self.code.push(OpCode::Minus);
+            }
             Node::SetField { name, expr } => {
                 self.compile(expr);
                 self.code.push(OpCode::SetField(name.clone()));
@@ -285,6 +290,7 @@ impl Compiler {
                     "len" => (3, 1),
                     "err" => (4, 1),
                     "append" => (5, 2),
+                    "pop" => (6, 1),
                     _ => panic!("no native function, {}", name),
                 };
                 if num != 0 && args.len() != arity {

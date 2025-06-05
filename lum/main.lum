@@ -1,0 +1,15 @@
+import { "lexer.lum", "parser.lum", "ast_printer.lum" }
+
+
+def input = #read_file("lum/sample.lum")
+#print("input:", input)
+
+def lexer = Lexer(input, 0)
+lexer = Peekable(lexer, nil)
+
+def parser = Parser(lexer)
+def root = parser.parse_root()
+
+def printer = AstPrinter([], true, "└──", "├──", "│  ")
+
+root.accept(printer)

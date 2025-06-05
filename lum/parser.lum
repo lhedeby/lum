@@ -1,0 +1,136 @@
+class AstRoot(nodes) { accept(visitor) { return visitor.visitAstRoot(@) }}
+class AstNeg(expr) { accept(visitor) { return visitor.visitAstNeg(@) } }
+class AstNot(expr) { accept(visitor) { return visitor.visitAstNot(@) } }
+class AstFloat(value) { accept(visitor) { return visitor.visitAstFloat(@) } }
+class AstInt(value) { accept(visitor) { return visitor.visitAstInt(@) } }
+class AstString(value) { accept(visitor) { return visitor.visitAstString(@) } }
+class AstGetField(value) { accept(visitor) { return visitor.visitAstGetField(@) } }
+class AstSetField(name, expr) { accept(visitor) { return visitor.visitAstSetField(@) } }
+class AstList(items) { accept(visitor) { return visitor.visitAstList(@) } }
+class AstIndex(lhs, indexer) { accept(visitor) { return visitor.visitAstIndex(@) } }
+class AstIndexSet(lhs, indexer, rhs) { accept(visitor) { return visitor.visitAstIndexSet(@) } }
+class AstBool(value) { accept(visitor) { return visitor.visitAstBool(@) } }
+class AstNil() { accept(visitor) { return visitor.visitAstNil(@) } }
+class AstDef(name, expr) { accept(visitor) { return visitor.visitAstDef(@) } }
+class AstPlus(lhs, rhs) { accept(visitor) { return visitor.visitAstPlus(@) } }
+class AstClass(name, fields, methods) { accept(visitor) { return visitor.visitAstClass(@) } }
+class AstBlock(stmts) { accept(visitor) { return visitor.visitAstBlock(@) } }
+class AstReassign(name, expr) { accept(visitor) { return visitor.visitAstReassign(@) } }
+class AstInstance(name, args) { accept(visitor) { return visitor.visitAstInstance(@) } }
+class AstNative(name, args) { accept(visitor) { return visitor.visitAstNative(@) } }
+class AstMethod(name, args, lhs) { accept(visitor) { return visitor.visitAstMethod(@) } }
+class AstPop(expr) { accept(visitor) { return visitor.visitAstPop(@) } }
+class AstEqualEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstEqualEqual(@) } }
+class AstIf(condition, block) { accept(visitor) { return visitor.visitAstIf(@) } }
+class AstReturn(expr) { accept(visitor) { return visitor.visitAstReturn(@) } }
+class AstWhile(condition, block) { accept(visitor) { return visitor.visitAstWhile(@) } }
+class AstOr(lhs, rhs) { accept(visitor) { return visitor.visitAstOr(@) } }
+class AstAnd(lhs, rhs) { accept(visitor) { return visitor.visitAstAnd(@) } }
+class AstBangEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstBangEqual(@) } }
+class AstGreater(lhs, rhs) { accept(visitor) { return visitor.visitAstGreater(@) } }
+class AstGreaterEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstGreaterEqual(@) } }
+class AstLess(lhs, rhs) { accept(visitor) { return visitor.visitAstLess(@) } }
+class AstLessEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstLessEqual(@) } }
+class AstGet(lhs, field) { accept(visitor) { return visitor.visitAstGet(@) } }
+class AstSet(lhs, field, rhs) { accept(visitor) { return visitor.visitAstSet(@) } }
+
+class Parser(lexer) {
+    consume(kind) {
+        def token = @lexer.next()
+        if kind != token.kind {
+            #err("expected " + #to_string(kind) + " but got " + #to_string(token.kind))
+        }
+    }
+
+    consume_identifier() {
+        def token = @lexer.next()
+        if token.kind != Kind.Identifier() {
+            #err("expected identifier but got " + #to_string(token.kind))
+        }
+        return token.value
+    }
+    infix_prec(token) {
+        if token == nil { return 0 }
+        if token.kind == Kind.Equal() { return 1 }
+        if token.kind == Kind.Or() { return 3 }
+        if token.kind == Kind.And() { return 4 }
+        if (token.kind == Kind.BangEqual()) or (token.kind == Kind.EqualEqual()) { return 5 }
+        if (token.kind == Kind.Greater()) or (token.kind == Kind.GreaterEqual()) or (token.kind == Kind.Less()) or (token.kind == Kind.LessEqual()) { return 6 }
+        if (token.kind == Kind.Plus()) or (token.kind == Kind.Minus()) { return 7 }
+        if (token.kind == Kind.Star()) or (token.kind == Kind.Slash()) { return 8 }
+        if (token.kind == Kind.LeftParen()) or (token.kind == Kind.LeftBracket()) { return 10 }
+        if token.kind == Kind.Dot() { return 11 }
+        return 0
+    }
+
+    parse_prefix() {
+        def token = @lexer.next()
+        if token.kind == Kind.Minus() { #err("minus") }
+        if token.kind == Kind.Bang() { #err("bang") }
+        if token.kind == Kind.LeftBracket() { #err("LeftBracket") }
+        if token.kind == Kind.Identifier() { #err("Identifier") }
+        if token.kind == Kind.Int() { return AstInt(token.value) }
+        if token.kind == Kind.Float() { #err("FloatValue") }
+        if token.kind == Kind.String() { #err("String") }
+        if token.kind == Kind.Bool() { #err("BoolValue") }
+        if token.kind == Kind.Nil() { #err("Nil") }
+        if token.kind == Kind.At() { #err("At") }
+        if token.kind == Kind.Hash() { #err("Hash") }
+        if token.kind == Kind.LeftParen() { #err("LeftParen") }
+        #err("parse prefix")
+    }
+
+
+    parse_expr(prec) {
+        def lhs = @parse_prefix()
+        while prec < @infix_prec(@lexer.peek()) {
+            lhs = @parse_infix(lhs)
+        }
+        return lhs
+    }
+
+    expr {
+        return @parse_expr(0)
+    }
+
+    block {}
+
+    stmt_def {
+        @consume(Kind.Def())
+        def name = @consume_identifier()
+        @consume(Kind.Equal())
+        def expr = @expr()
+        return AstDef(name, expr)
+    }
+    list {}
+    stmt_if {}
+    stmt_while {}
+    stmt_return {}
+    stmt_set_field {}
+
+    stmt {
+        def token = @lexer.peek()
+        if token.kind == Kind.LeftBrace() { return @block() }
+        if token.kind == Kind.Def() { return @stmt_def() }
+        if token.kind == Kind.LeftBracket()  { return @list() }
+        if token.kind == Kind.Class() { return @list() }
+        if token.kind == Kind.Identifier() { return nil }
+        if token.kind == Kind.If() { return @stmt_if() }
+        if token.kind == Kind.While() { return @stmt_while() }
+        if token.kind == Kind.Return() { return @stmt_return() }
+        if token.kind == Kind.At() { return @stmt_set_field() }
+        if token.kind == Kind.Hash() { return nil }
+        #err("stmt")
+    }
+
+    parse_root {
+        def root_list = []
+        while @lexer.peek() != nil {
+            def node = @stmt()
+            #append(root_list, node)
+        }
+        return AstRoot(root_list)
+    }
+
+
+}

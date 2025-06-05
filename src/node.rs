@@ -34,6 +34,10 @@ pub enum Node {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
+    Minus {
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
     Class {
         name: String,
         fields: Vec<String>,
@@ -168,6 +172,12 @@ impl Node {
             }
             Node::Plus { lhs, rhs } => {
                 println!("Plus");
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                lhs.pretty_print(&new_indent, false);
+                rhs.pretty_print(&new_indent, true);
+            }
+            Node::Minus { lhs, rhs } => {
+                println!("Minus");
                 let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
                 lhs.pretty_print(&new_indent, false);
                 rhs.pretty_print(&new_indent, true);

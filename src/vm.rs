@@ -120,6 +120,16 @@ impl Vm {
                     }
                     ip += 1;
                 }
+                OpCode::Minus => {
+                    let v2 = stack.pop().unwrap();
+                    let v1 = stack.pop().unwrap();
+                    match (v1, v2) {
+                        (Value::Float(f1), Value::Float(f2)) => stack.push(Value::Float(f1 - f2)),
+                        (Value::Int(i1), Value::Int(i2)) => stack.push(Value::Int(i1 - i2)),
+                        _ => panic!("cant subtract"),
+                    }
+                    ip += 1;
+                }
                 OpCode::JumpIfFalse(p) => {
                     let b = stack.pop().unwrap();
                     let v = match b {
@@ -189,7 +199,6 @@ impl Vm {
                                     Ok(s) => s,
                                     Err(e) => format!("Error reading file: {} - {}", self.strings[s], e),
                                 };
-                                println!("content: {:?}", content);
                                 stack.push(Value::String(self.strings.len()));
                                 self.strings.push(content);
                             }
@@ -219,6 +228,17 @@ impl Vm {
                                 Value::List(l) => {
                                     self.lists[l].push(val);
                                     stack.push(Value::Nil)
+                                }
+                                _ => panic!("trying to push to something thats not a list")
+                            }
+                        }
+
+                        6 => {
+                            let list = stack.pop().unwrap();
+                            match list {
+                                Value::List(l) => {
+                                    let val = self.lists[l].pop().unwrap();
+                                    stack.push(val)
                                 }
                                 _ => panic!("trying to push to something thats not a list")
                             }
@@ -298,6 +318,8 @@ impl Vm {
                     match stack[stack_offset] {
                         Value::Instance(i) => {
                             let iobc = &self.instances[i];
+                            // println!("name: {name}");
+                            // println!("iovbsc {:?}", iobc);
                             ip = iobc.methods[name];
                         }
                         _ => panic!("not instance"),

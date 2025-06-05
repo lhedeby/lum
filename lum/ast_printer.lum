@@ -1,0 +1,94 @@
+class AstPrinter(indent, is_last, id1, id2, id3) {
+
+    print_node(text) {
+        def remove_this = "└├│─"
+        def i = 0
+        def ind = ""
+        while i < #len(@indent) {
+            ind = ind + @indent[i]
+            i = i + 1
+        }
+        if @is_last {
+            #print(ind + "└──", text)
+        }
+        if !@is_last {
+            #print(ind + "├──", text)
+        }
+    }
+
+    add_indent(text) {
+        #append(@indent, text)
+    }
+
+    pop_indent() {
+        #pop(@indent)
+    }
+    
+    visitAstRoot(self) {
+        #print("visiting root")
+        def old_indent = @indent
+        @print_node("Root")
+
+        @add_indent("    ")
+
+        def i = 0
+        @is_last = false
+        while i < #len(self.nodes) {
+            if i == #len(self.nodes) - 1 {
+                @is_last = true
+            }
+            self.nodes[i].accept(@)
+            i = i + 1
+        }
+        @pop_indent()
+        
+        #print("done visiting root")
+    }
+    visitAstNeg(self) {}
+    visitAstNot(self) {}
+    visitAstFloat(self) {}
+    visitAstInt(self) {
+        @print_node("Int(" + self.value + ")")
+    }
+    visitAstString(self) {}
+    visitAstGetField(self) {}
+    visitAstSetField(self) {}
+    visitAstList(self) {}
+    visitAstIndex(self) {}
+    visitAstIndexSet(self) {}
+    visitAstBool(self) {}
+    visitAstNil(self) {}
+    visitAstDef(self) {
+        @print_node("Def: " + self.name)
+        if @is_last {
+            @add_indent("    ")
+        }
+        if !@is_last {
+            @add_indent("│   ")
+        }
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstPlus(self) {}
+    visitAstClass(self) {}
+    visitAstBlock(self) {}
+    visitAstReassign(self) {}
+    visitAstInstance(self) {}
+    visitAstNative(self) {}
+    visitAstMethod(self) {}
+    visitAstPop(self) {}
+    visitAstEqualEqual(self) {}
+    visitAstIf(self) {}
+    visitAstReturn(self) {}
+    visitAstWhile(self) {}
+    visitAstOr(self) {}
+    visitAstAnd(self) {}
+    visitAstBangEqual(self) {}
+    visitAstGreater(self) {}
+    visitAstGreaterEqual(self) {}
+    visitAstLess(self) {}
+    visitAstLessEqual(self) {}
+    visitAstGet(self) {}
+    visitAstSet(self) {}
+}

@@ -1,0 +1,229 @@
+class Kind {
+    LeftParen { return 0 }
+    RightParen { return 1 }
+    LeftBracket { return 2 }
+    RightBracket { return 3 }
+    LeftBrace { return 4 }
+    RightBrace { return 5 }
+    Less { return 6 }
+    Greater { return 7 }
+    Equal { return 8 }
+    Plus { return 9 }
+    Minus { return 10 }
+    Slash { return 11 }
+    Star { return 12 }
+    Dot { return 13 }
+    Comma { return 14 }
+    Colon { return 15 }
+    SemiColon { return 16 }
+    Bang { return 17 }
+    At { return 18 }
+    Hash { return 19 }
+    Class { return 20 }
+    And { return 21 }
+    Or { return 22 }
+    Else { return 23 }
+    If { return 24 }
+    For { return 25 }
+    Nil { return 26 }
+    Return { return 27 }
+    While { return 28 }
+    Import { return 29 }
+    True { return 30 }
+    False { return 31 }
+    Def { return 32 }
+    Int { return 33 }
+    Float { return 34 }
+    Bool { return 35 }
+    Str { return 36 }
+    Identifier { return 37 }
+    String { return 38 }
+    Float { return 40 }
+    BangEqual { return 41 }
+    EqualEqual { return 42 }
+    GreaterEqual { return 43 }
+    LessEqual { return 44 }
+
+    from_str(in) {
+        def kinds = [
+            "(", ")", "[", "]", "{", "}", "<", ">", "=", "+",
+            "-", "/", "*", ".", ",", ":", ";", "!", "@", "#",
+            "class", "and", "or", "else", "if", "for", "nil",
+            "return", "while", "import", "true", "false",
+            "def", "int", "float", "bool", "str"
+        ]
+        def i = 0
+        while i < #len(kinds) {
+            if in == kinds[i] {
+                return i
+            }
+            i = i + 1
+        }
+        return nil
+    }
+}
+
+class Token(value, start, end, kind) {}
+
+class Lexer(code, p) {
+
+    whitespace {
+        while @p < #len(@code) and @code[@p] == " " {
+            @p = @p + 1
+        }
+    }
+
+    is_done {
+        return @p >= #len(@code)
+    }
+
+    letter() {
+        if @is_done() {
+            return false
+        }
+        def letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        def i = 0
+        while i < #len(letters) {
+            if letters[i] == @code[@p] {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    digit() {
+        if @is_done() {
+            return false
+        }
+        def digits = "0123456789"
+        def i = 0
+        while i < #len(digits) {
+            if digits[i] == @code[@p] {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    advance {
+        if @p < #len(@code) {
+            @p = @p + 1
+        }
+    }
+
+    identifier() {
+        def start = @p
+        def val = ""
+        while @letter() {
+            val = val + @code[@p]
+            @p = @p + 1
+        }
+        def end = @p
+        def keyword = Kind.from_str(val)
+        if keyword != nil {
+            return Token(val, start, end, keyword)
+        }
+        return Token(val, start, end, Kind.Identifier())
+    }
+
+    number() {
+        def start = @p
+        def val = ""
+        def is_float = false
+        while @digit() or @code[@p] == "." {
+            if @code[@p] == "." {
+                is_float = true
+            }
+            val = val + @code[@p]
+            @p = @p + 1
+        }
+        
+        def end = @p
+        if is_float {
+            return Token(val, start, end, Kind.Float())
+        }
+        return Token(val, start, end, Kind.Int())
+    }
+
+
+    string() {
+        def start = @p
+        def val = "\""
+        @p = @p + 1
+        while @code[@p] != "\"" {
+            val = val + @code[@p]
+            @p = @p + 1
+        }
+
+        val = val + "\""
+        @p = @p + 1
+        def end = @p
+        return Token(val, start, end, Kind.String())
+    }
+
+    single_char()  {
+        def a = Kind.from_str(@code[@p])
+        if a != nil {
+            return Token(@code[@p], @p, @p+1, a)
+        }
+        return nil
+    }
+
+    next() {
+        if @is_done() {
+            return nil
+        }
+        @whitespace()
+
+        while !@is_done() {
+            if @letter() {
+                return @identifier()
+            }
+            if @digit() {
+                return @number()
+            }
+            def single_char = @single_char()
+            if single_char != nil {
+                @p = @p + 1
+                return single_char
+            }
+            if @code[@p] == "\"" {
+                return @string()
+            }
+            @advance()
+        }
+        return nil
+    }
+}
+
+
+class Peekable(item, peek_item) {
+    next {
+        if @peek_item != nil {
+            def temp = @peek_item
+            @peek_item = nil
+            return temp
+        }
+        return @item.next()
+    }
+
+    peek {
+        if @peek_item == nil {
+            @peek_item = @item.next()
+        }
+        return @peek_item
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
