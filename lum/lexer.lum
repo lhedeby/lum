@@ -81,7 +81,7 @@ class Lexer(code, p) {
         if @is_done() {
             return false
         }
-        def letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        def letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
         def i = 0
         while i < #len(letters) {
             if letters[i] == @code[@p] {
@@ -171,6 +171,27 @@ class Lexer(code, p) {
         return nil
     }
 
+    two_char() {
+        if (@p + 1) == #len(@code) {
+            return nil
+        }
+        def c1 = @code[@p]
+        def c2 = @code[@p+1]
+        if c1 == "!" and c2 == "=" {
+            return Token(c1+c2, @p, @p+2, Kind.BangEqual())
+        }
+        if c1 == "=" and c2 == "=" {
+            return Token(c1+c2, @p, @p+2, Kind.EqualEqual())
+        }
+        if c1 == ">" and c2 == "=" {
+            return Token(c1+c2, @p, @p+2, Kind.GreaterEqual())
+        }
+        if c1 == "<" and c2 == "=" {
+            return Token(c1+c2, @p, @p+2, Kind.LessEqual())
+        }
+        return nil
+    }
+
     next() {
         if @is_done() {
             return nil
@@ -178,6 +199,11 @@ class Lexer(code, p) {
         @whitespace()
 
         while !@is_done() {
+            def two_char = @two_char()
+            if two_char != nil {
+                @p = @p + 2
+                return two_char
+            }
             if @letter() {
                 return @identifier()
             }

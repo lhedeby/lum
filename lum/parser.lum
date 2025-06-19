@@ -4,21 +4,41 @@ class AstNot(expr) { accept(visitor) { return visitor.visitAstNot(@) } }
 class AstFloat(value) { accept(visitor) { return visitor.visitAstFloat(@) } }
 class AstInt(value) { accept(visitor) { return visitor.visitAstInt(@) } }
 class AstString(value) { accept(visitor) { return visitor.visitAstString(@) } }
-class AstGetField(value) { accept(visitor) { return visitor.visitAstGetField(@) } }
+class AstGetField(value) {
+    accept(visitor) { return visitor.visitAstGetField(@) }
+    kind { return "GetField" }
+}
 class AstSetField(name, expr) { accept(visitor) { return visitor.visitAstSetField(@) } }
 class AstList(items) { accept(visitor) { return visitor.visitAstList(@) } }
-class AstIndex(lhs, indexer) { accept(visitor) { return visitor.visitAstIndex(@) } }
-class AstIndexSet(lhs, indexer, rhs) { accept(visitor) { return visitor.visitAstIndexSet(@) } }
+class AstIndex(lhs, indexer) {
+    accept(visitor) { return visitor.visitAstIndex(@) }
+    kind { return "Index" }
+}
+class AstIndexSet(lhs, indexer, rhs) {
+    accept(visitor) { return visitor.visitAstIndexSet(@) }
+    kind { return "IndexSet" }
+}
 class AstBool(value) { accept(visitor) { return visitor.visitAstBool(@) } }
 class AstNil() { accept(visitor) { return visitor.visitAstNil(@) } }
+class AstGetVar(value) {
+    accept(visitor) { return visitor.visitAstGetVar(@) }
+    kind { return "GetVar" }
+}
 class AstDef(name, expr) { accept(visitor) { return visitor.visitAstDef(@) } }
 class AstPlus(lhs, rhs) { accept(visitor) { return visitor.visitAstPlus(@) } }
+class AstMinus(lhs, rhs) { accept(visitor) { return visitor.visitAstMinus(@) } }
 class AstClass(name, fields, methods) { accept(visitor) { return visitor.visitAstClass(@) } }
 class AstBlock(stmts) { accept(visitor) { return visitor.visitAstBlock(@) } }
-class AstReassign(name, expr) { accept(visitor) { return visitor.visitAstReassign(@) } }
+class AstReassign(name, expr) {
+    accept(visitor) { return visitor.visitAstReassign(@) }
+    kind { return "Reassign" }
+}
 class AstInstance(name, args) { accept(visitor) { return visitor.visitAstInstance(@) } }
 class AstNative(name, args) { accept(visitor) { return visitor.visitAstNative(@) } }
-class AstMethod(name, args, lhs) { accept(visitor) { return visitor.visitAstMethod(@) } }
+class AstMethod(name, args, lhs) {
+    accept(visitor) { return visitor.visitAstMethod(@) }
+    kind { return "Method"}
+}
 class AstPop(expr) { accept(visitor) { return visitor.visitAstPop(@) } }
 class AstEqualEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstEqualEqual(@) } }
 class AstIf(condition, block) { accept(visitor) { return visitor.visitAstIf(@) } }
@@ -31,8 +51,18 @@ class AstGreater(lhs, rhs) { accept(visitor) { return visitor.visitAstGreater(@)
 class AstGreaterEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstGreaterEqual(@) } }
 class AstLess(lhs, rhs) { accept(visitor) { return visitor.visitAstLess(@) } }
 class AstLessEqual(lhs, rhs) { accept(visitor) { return visitor.visitAstLessEqual(@) } }
-class AstGet(lhs, field) { accept(visitor) { return visitor.visitAstGet(@) } }
-class AstSet(lhs, field, rhs) { accept(visitor) { return visitor.visitAstSet(@) } }
+class AstGet(lhs, field) {
+    accept(visitor) { return visitor.visitAstGet(@) }
+    kind { return "Get" }
+}
+class AstSet(lhs, field, rhs) {
+    accept(visitor) { return visitor.visitAstSet(@) }
+    kind { return "Set" }
+}
+class AstGetSelf() { accept(visitor) { return visitor.visitAstSet(@) } }
+
+
+class Method(name, params, block) {}
 
 class Parser(lexer) {
     consume(kind) {
@@ -63,21 +93,120 @@ class Parser(lexer) {
         return 0
     }
 
+
+    field {
+        if @lexer.peek().kind == Kind.Identifier() {
+            def name = @consume_identifier()
+            return AstGetField(name)
+        }
+        return AstGetSelf()
+        #err("field")
+    }
+
+
+
     parse_prefix() {
         def token = @lexer.next()
-        if token.kind == Kind.Minus() { #err("minus") }
-        if token.kind == Kind.Bang() { #err("bang") }
-        if token.kind == Kind.LeftBracket() { #err("LeftBracket") }
-        if token.kind == Kind.Identifier() { #err("Identifier") }
+        if token.kind == Kind.Minus() { return AstNeg(@parse_expr(9)) }
+        if token.kind == Kind.Bang() { return AstNot(@parse_expr(9)) }
+        if token.kind == Kind.LeftBracket() { return @list() }
+        if token.kind == Kind.Identifier() { return AstGetVar(token.value) }
         if token.kind == Kind.Int() { return AstInt(token.value) }
-        if token.kind == Kind.Float() { #err("FloatValue") }
-        if token.kind == Kind.String() { #err("String") }
-        if token.kind == Kind.Bool() { #err("BoolValue") }
-        if token.kind == Kind.Nil() { #err("Nil") }
-        if token.kind == Kind.At() { #err("At") }
-        if token.kind == Kind.Hash() { #err("Hash") }
+        if token.kind == Kind.Float() { return AstFloat(token.value) }
+        if token.kind == Kind.String() { return AstString(token.value) }
+        if token.kind == Kind.True() { return AstBool(true) }
+        if token.kind == Kind.False() { return AstBool(false) }
+        if token.kind == Kind.Nil() { return AstNil }
+        if token.kind == Kind.At() {
+            return @field()
+        }
+        if token.kind == Kind.Hash() { return @native() }
         if token.kind == Kind.LeftParen() { #err("LeftParen") }
+        #print("token", token)
         #err("parse prefix")
+    }
+
+    match_infix_token(lhs, rhs, kind) {
+        if kind == Kind.Or() { return AstOr(lhs, rhs) }
+        if kind == Kind.And() { return AstAnd(lhs, rhs) }
+        if kind == Kind.BangEqual() { return AstBangEqual(lhs, rhs) }
+        if kind == Kind.EqualEqual() { return AstEqualEqual(lhs, rhs) }
+        if kind == Kind.Greater() { return AstGreater(lhs, rhs) }
+        if kind == Kind.GreaterEqual() { return AstGreaterEqual(lhs, rhs) }
+        if kind == Kind.Less() { return AstLess(lhs, rhs) }
+        if kind == Kind.LessEqual() { return AstLessEqual(lhs, rhs) }
+        if kind == Kind.Plus() { return AstPlus(lhs, rhs) }
+        if kind == Kind.Minus() { return AstMinus(lhs, rhs) }
+        if kind == Kind.Equal() { 
+            if lhs.kind() == "GetVar" {
+                return AstReassign(lhs.value, rhs)
+            }
+            if lhs.kind() == "Get" {
+                return AstSet(lhs.lhs, lhs.field, rhs)
+            }
+            if lhs.kind() == "Index" {
+                return AstIndexSet(lhs.lhs, lhs.indexer, rhs)
+            }
+            
+        }
+        #err("no infix token match")
+    }
+
+    call(lhs) {
+        def args = []
+        while @lexer.peek().kind != Kind.RightParen() {
+            #append(args, @expr())
+            if @lexer.peek().kind == Kind.Comma() {
+                @consume(Kind.Comma())
+            }
+        }
+        @consume(Kind.RightParen())
+        if lhs.kind() == "GetVar" { return AstInstance(lhs.value, args) }
+        if lhs.kind() == "Get" { return AstMethod(lhs.field, args, lhs.lhs) }
+        if lhs.kind() == "GetField" { return AstMethod(lhs.value, args, nil) }
+        #err("call err")
+    }
+
+    index(lhs) {
+        def expr = @expr()
+        @consume(Kind.RightBracket())
+        return AstIndex(lhs, expr)
+    }
+
+    get_or_set(lhs) {
+        def name = @consume_identifier()
+        return AstGet(lhs, name)
+    }
+
+
+    parse_infix(lhs) {
+        def token = @lexer.peek()
+        while token != nil {
+            if token.kind == Kind.LeftParen() {
+                @consume(Kind.LeftParen())
+                lhs = @call(lhs)
+            }
+            if token.kind == Kind.LeftBracket() {
+                #print("here!")
+                @consume(Kind.LeftBracket())
+                lhs = @index(lhs)
+            }
+            if token.kind == Kind.Dot() {
+                @consume(Kind.Dot())
+                lhs = @get_or_set(lhs)
+            }
+            if (token.kind != Kind.LeftParen()) and (token.kind != Kind.LeftBracket()) and (token.kind != Kind.Dot()) {
+                def next_prec = @infix_prec(token)
+                if next_prec == 0 {
+                    return lhs
+                }
+                @consume(token.kind)
+                def rhs = @parse_expr(next_prec)
+                lhs = @match_infix_token(lhs, rhs, token.kind)
+            }
+            token = @lexer.peek()
+        }
+        return lhs
     }
 
 
@@ -93,7 +222,42 @@ class Parser(lexer) {
         return @parse_expr(0)
     }
 
-    block {}
+    block {
+        @consume(Kind.LeftBrace())
+        def stmts = []
+        def done = false
+        while !done {
+            def token = @lexer.peek()
+            if token.kind == Kind.RightBrace() {
+                done = true
+            }
+            if token.kind != Kind.RightBrace() {
+                #append(stmts, @stmt())
+            }
+        }
+        @consume(Kind.RightBrace())
+        return AstBlock(stmts)
+    }
+
+    param_list {
+        if @lexer.peek().kind != Kind.LeftParen() {
+            return []
+        }
+        @consume(Kind.LeftParen())
+        def res = []
+        while @lexer.peek().kind != Kind.RightParen() {
+            def token = @lexer.peek()
+            if token.kind == Kind.Identifier() {
+                def name = @consume_identifier()
+                #append(res, name)
+            }
+            if token.kind == Kind.Comma() {
+                @consume(Kind.Comma())
+            }
+        }
+        @consume(Kind.RightParen())
+        return res
+    }
 
     stmt_def {
         @consume(Kind.Def())
@@ -102,24 +266,116 @@ class Parser(lexer) {
         def expr = @expr()
         return AstDef(name, expr)
     }
-    list {}
-    stmt_if {}
-    stmt_while {}
-    stmt_return {}
-    stmt_set_field {}
+
+    stmt_class {
+        @consume(Kind.Class())
+        def name = @consume_identifier()
+        def fields = @param_list()
+        @consume(Kind.LeftBrace())
+
+        def methods = []
+
+        while @lexer.peek().kind != Kind.RightBrace() {
+            def method_name = @consume_identifier()
+            def params = @param_list()
+            def block = @block()
+            #append(methods, Method(method_name, params, block))
+        }
+        @consume(Kind.RightBrace())
+        return AstClass(name, fields, methods)
+    }
+
+    list {
+        def items = []
+        def token = @lexer.peek()
+        def is_first = true
+        while token.kind != Kind.RightBracket() {
+            if !is_first {
+                @consume(Kind.Comma())
+            }
+            is_first = false
+            #append(items, @expr())
+            token = @lexer.peek()
+        }
+        @consume(Kind.RightBracket())
+        return AstList(items)
+    }
+    stmt_if {
+        @consume(Kind.If())
+        def expr = @expr()
+        def block = @block()
+        return AstIf(expr, block)
+    }
+
+    stmt_while {
+        @consume(Kind.While())
+        def condition = @expr()
+        def block = @block()
+        return AstWhile(condition, block)
+    }
+    stmt_return {
+        @consume(Kind.Return())
+        return AstReturn(@expr())
+    }
+
+    stmt_set_field {
+        @consume(Kind.At())
+        def name = @consume_identifier()
+        def next = @lexer.next()
+        if next.kind == Kind.Equal() {
+            return AstSetField(name, @expr())
+        }
+        if next.kind == Kind.LeftParen() {
+            #print("here?")
+            return AstPop(@call(AstGetField(name)))
+        }
+        #err("todo: stmt_set_field")
+    }
+
+    native {
+        def name = @consume_identifier()
+        @consume(Kind.LeftParen())
+        def args = []
+
+        def done = @lexer.peek().kind == Kind.RightParen()
+        while !done {
+            #append(args, @expr())
+
+            def token = @lexer.peek().kind
+            if token == Kind.Comma() {
+                @consume(Kind.Comma())
+            }
+            if token == Kind.RightParen() {
+                done = true
+            }
+        }
+        @consume(Kind.RightParen())
+        return AstNative(name, args)
+    }
 
     stmt {
         def token = @lexer.peek()
         if token.kind == Kind.LeftBrace() { return @block() }
         if token.kind == Kind.Def() { return @stmt_def() }
         if token.kind == Kind.LeftBracket()  { return @list() }
-        if token.kind == Kind.Class() { return @list() }
-        if token.kind == Kind.Identifier() { return nil }
+        if token.kind == Kind.Class() { return @stmt_class() }
+        if token.kind == Kind.Identifier() {
+            def expr = @expr()
+            #print("todo: should pop if method instance or get", expr)
+            def kind = expr.kind()
+            if kind == "Method" or kind == "Instance" or kind == "Get" {
+                return AstPop(expr)
+            }
+            return expr
+        }
         if token.kind == Kind.If() { return @stmt_if() }
         if token.kind == Kind.While() { return @stmt_while() }
         if token.kind == Kind.Return() { return @stmt_return() }
         if token.kind == Kind.At() { return @stmt_set_field() }
-        if token.kind == Kind.Hash() { return nil }
+        if token.kind == Kind.Hash() { 
+            @consume(Kind.Hash())
+            return AstPop(@native())
+        }
         #err("stmt")
     }
 

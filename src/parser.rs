@@ -140,6 +140,17 @@ impl Parser<'_> {
             Some(Token::LeftParen) => Node::Pop {
                 expr: Box::new(self.call(Node::GetField(name))),
             },
+            Some(Token::LeftBracket) => {
+                let indexer = self.expr();
+                self.consume(Token::RightBracket);
+                self.consume(Token::Equal);
+                let rhs = self.expr();
+                Node::IndexSet {
+                    lhs: Box::new(Node::GetField(name)),
+                    indexer: Box::new(indexer),
+                    rhs: Box::new(rhs),
+                }
+            }
             Some(token) => panic!("Unexpected token '{}', expected '='", token),
             None => panic!("Unexpected end of tokens"),
         }

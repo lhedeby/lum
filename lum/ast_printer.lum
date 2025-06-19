@@ -16,79 +16,302 @@ class AstPrinter(indent, is_last, id1, id2, id3) {
         }
     }
 
-    add_indent(text) {
-        #append(@indent, text)
+    add_indent {
+        if @is_last {
+            #append(@indent, "    ")
+        }
+        if !@is_last {
+            #append(@indent, "│   ")
+        }
     }
 
-    pop_indent() {
+    pop_indent {
         #pop(@indent)
     }
-    
-    visitAstRoot(self) {
-        #print("visiting root")
-        def old_indent = @indent
-        @print_node("Root")
 
-        @add_indent("    ")
-
+    loop(list) {
+        @add_indent()
         def i = 0
-        @is_last = false
-        while i < #len(self.nodes) {
-            if i == #len(self.nodes) - 1 {
+        while i < #len(list) {
+            @is_last = false
+            if i == #len(list) - 1 {
                 @is_last = true
             }
-            self.nodes[i].accept(@)
+            list[i].accept(@)
             i = i + 1
         }
         @pop_indent()
-        
-        #print("done visiting root")
     }
-    visitAstNeg(self) {}
-    visitAstNot(self) {}
-    visitAstFloat(self) {}
-    visitAstInt(self) {
-        @print_node("Int(" + self.value + ")")
+    
+    visitAstRoot(self) {
+        @print_node("Root")
+        @loop(self.nodes)
     }
-    visitAstString(self) {}
-    visitAstGetField(self) {}
-    visitAstSetField(self) {}
-    visitAstList(self) {}
-    visitAstIndex(self) {}
-    visitAstIndexSet(self) {}
-    visitAstBool(self) {}
-    visitAstNil(self) {}
-    visitAstDef(self) {
-        @print_node("Def: " + self.name)
-        if @is_last {
-            @add_indent("    ")
-        }
-        if !@is_last {
-            @add_indent("│   ")
-        }
+
+    visitAstNeg(self) {
+        @print_node("Neg")
+        @add_indent()
         @is_last = true
         self.expr.accept(@)
         @pop_indent()
     }
-    visitAstPlus(self) {}
-    visitAstClass(self) {}
-    visitAstBlock(self) {}
-    visitAstReassign(self) {}
-    visitAstInstance(self) {}
-    visitAstNative(self) {}
-    visitAstMethod(self) {}
-    visitAstPop(self) {}
-    visitAstEqualEqual(self) {}
-    visitAstIf(self) {}
-    visitAstReturn(self) {}
-    visitAstWhile(self) {}
-    visitAstOr(self) {}
-    visitAstAnd(self) {}
-    visitAstBangEqual(self) {}
-    visitAstGreater(self) {}
-    visitAstGreaterEqual(self) {}
-    visitAstLess(self) {}
-    visitAstLessEqual(self) {}
-    visitAstGet(self) {}
-    visitAstSet(self) {}
+    visitAstNot(self) {
+        @print_node("Not")
+        @add_indent()
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstFloat(self) { @print_node("Float(" + self.value + ")") }
+    visitAstInt(self) {
+        @print_node("Int(" + self.value + ")")
+    }
+    visitAstString(self) { 
+        @print_node("String(" + self.value + ")")
+    }
+    visitAstGetField(self) {
+        @print_node("Field(" + self.value + ")")
+    }
+    visitAstSetField(self) {
+        @print_node("SetField(" + self.name + ")")
+        @is_last = true
+        @add_indent()
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstList(self) {
+        @print_node("List")
+        @loop(self.items)
+    }
+    visitAstIndex(self) {
+        @print_node("Index")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.indexer.accept(@)
+        @pop_indent()
+    }
+    visitAstIndexSet(self) {
+        @print_node("IndexSet")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        self.indexer.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstBool(self) {
+        @print_node("Bool(" + #to_string(self.value) + ")")
+    }
+    visitAstNil(self) { @print_node("Nil") }
+    visitAstGetVar(self) {
+        @print_node("GetVar(" + self.value + ")")
+    }
+    visitAstDef(self) {
+        @print_node("Def: " + self.name)
+        @add_indent()
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstPlus(self) {
+        @print_node("Plus")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstClass(self) {
+        @print_node("Class: " + self.name)
+
+        @add_indent()
+        def i = 0
+        while i < #len(self.fields) {
+            @is_last = #len(self.methods) == 0 and i == (#len(self.fields) - 1)
+            @print_node("Field: " + self.fields[i])
+            i = i + 1
+        }
+
+        i = 0
+        while i < #len(self.methods) {
+            if i == #len(self.methods) - 1 {
+                @is_last = true
+            }
+            @print_node("Method: " + self.methods[i].name)
+            @add_indent()
+            self.methods[i].block.accept(@)
+            @pop_indent()
+            i = i + 1
+        }
+        @pop_indent()
+
+    }
+    visitAstBlock(self) {
+        @print_node("Block")
+        @loop(self.stmts)
+    }
+    visitAstReassign(self) {
+        @print_node("Reassign: " + self.name)
+        @add_indent()
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstInstance(self) {
+        @print_node(("Instance: " + self.name))
+        @loop(self.args)
+    }
+    visitAstNative(self) {
+        @print_node("Native: " + self.name)
+        @loop(self.args)
+    }
+    visitAstMethod(self) {
+        @print_node("MethodCall: " + self.name)
+        @add_indent()
+        @is_last = self.lhs == nil and #len(self.args) == 0
+        def i = 0
+        if #len(self.args) > 0 {
+            @print_node("Args")
+            @add_indent()
+            @is_last = self.lhs == nil
+            while i < #len(self.args) {
+                if i == #len(self.args) - 1 {
+                    @is_last = true
+                }
+                self.args[i].accept(@)
+                i = i + 1
+            }
+            @pop_indent()
+        }
+        if self.lhs != nil {
+            @is_last = true
+            self.lhs.accept(@)
+        }
+        @pop_indent()
+    }
+    visitAstPop(self) { 
+        @print_node("Pop")
+        @add_indent()
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstEqualEqual(self) {
+        @print_node("EqualEqual")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstIf(self) {
+        @print_node("If")
+        @add_indent()
+        @is_last = false
+        self.condition.accept(@)
+        @is_last = true
+        self.block.accept(@)
+        @pop_indent()
+    }
+    visitAstReturn(self) {
+        @print_node("Return")
+        @add_indent()
+        @is_last = true
+        self.expr.accept(@)
+        @pop_indent()
+    }
+    visitAstWhile(self) {
+        @print_node("While")
+        @add_indent()
+        self.condition.accept(@)
+        @is_last = true
+        self.block.accept(@)
+        @pop_indent()
+    }
+
+    visitAstOr(self) { 
+        @print_node("Or")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+
+    visitAstAnd(self) {
+        @print_node("And")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+
+    visitAstBangEqual(self) {
+        @print_node("BangEqual")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstGreater(self) {
+        @print_node("Greater")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstGreaterEqual(self) {
+        @print_node("GreaterEqual")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstLess(self) {
+        @print_node("Less")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstLessEqual(self) {
+        @print_node("LessEqual")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+    visitAstGet(self) {
+        @print_node("Get(" + self.field + ")")
+        @add_indent()
+        self.lhs.accept(@)
+        @pop_indent()
+    }
+    visitAstSet(self) {
+        @print_node("Set(" + self.field + ")")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
 }

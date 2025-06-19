@@ -1,0 +1,358 @@
+class Local(name, depth, stack_pos) {}
+class CompilerClass(name, fields, methods) {}
+class CompilerMethod(name, code_start) {}
+
+
+class Compiler(code, strings, variables, depth, classes, current_fields, current_class_name) {
+    init {
+        #print("init compiler")
+        @code = []
+        @strings = []
+        @variables = [[]]
+        @depth = 0
+        @classes = []
+        @current_fields = nil
+        @current_class_name = nil
+    }
+
+    find_class(name) {
+        def i = 0
+        while i < #len(@classes) {
+            if name == @classes[i].name {
+                return @classes[i]
+            }
+            i = i + 1
+        }
+        return nil
+    }
+
+    push_code(code) {
+        #append(@code, code)
+    }
+
+    begin_method {
+        #append(@variables, [])
+        @depth = @depth + 1
+    }
+
+    end_method {
+        def w = #pop(@variables)
+        @depth = @depth - 1
+    }
+
+
+    begin_scope {
+        @depth = @depth + 1
+    }
+
+
+    end_scope {
+        def last_vars = #pop(@variables)
+        def len = #len(last_vars)
+        def i = 0
+        def new_vars = []
+        while i < len {
+            if last_vars[i].depth == @depth {
+                @push_code("Pop")
+            }
+            if last_vars[i].depth != @depth {
+                #append(new_vars, last_vars[i])
+            }
+            i = i + 1
+        }
+        @depth = @depth - 1
+        #append(@variables, new_vars)
+    }
+
+    add_local(name) {
+        def vars = @variables[#len(@variables)-1]
+        def i = 0
+        def res = nil
+        while i < #len(vars) {
+            if vars[i].name == name {
+                #err("var with name: " + name + " already exists")
+            }
+            i = i + 1
+        }
+        #print("the wierd ll thing probably should not be here")
+        #append(vars, Local(name, @depth, #len(vars)))
+    }
+
+    get_local(name) {
+        def vars = @variables[#len(@variables)-1]
+        def i = 0
+
+        while i < #len(vars) {
+            if vars[i].name == name {
+                return vars[i].stack_pos
+            }
+            i = i + 1
+        }
+        return nil
+    }
+
+    compile_list(items) {
+        def i = 0
+        while i < #len(items) {
+            items[i].accept(@)
+            i = i + 1
+        }
+    }
+
+    native(name) {
+        if name == "print" { return [0, 1] }
+        if name == "to_string" { return [1, 1] }
+        if name == "read_file" { return [2, 1] }
+        if name == "len" { return [3, 1] }
+        if name == "err" { return [4, 1] }
+        if name == "append" { return [5, 2] }
+        if name == "pop" { return [6, 1] }
+        #err("no native function with name: " + name)
+    }
+
+    visitAstRoot(self) {
+        @begin_scope()
+        @compile_list(self.nodes)
+        @end_scope()
+    }
+    visitAstNeg(self) {
+        self.expr.accept(@)
+        @push_code("Neg")
+    }
+    visitAstNot(self) {
+        self.expr.accept(@)
+        @push_code("Not")
+    }
+    visitAstFloat(self) { @push_code("PushFloat(" + #to_string(self.value) + ")") }
+    visitAstInt(self) { @push_code("PushInt(" + #to_string(self.value) + ")") }
+
+    visitAstString(self) {
+        @push_code("PushString(" + #to_string(#len(@strings)) + ")")
+        #append(@strings, self.value)
+    }
+
+    visitAstGetField(self) { @push_code("GetField(" + self.value + ")") }
+
+    visitAstSetField(self) {
+        self.expr.accept(@)
+        @push_code("SetField(" + self.name + ")")
+    }
+
+    visitAstList(self) {
+        @compile_list(self.items)
+        @push_code("List(" + #to_string(#len(self.items)) + ")")
+    }
+
+    visitAstIndex(self) {
+        self.lhs.accept(@)
+        self.indexer.accept(@)
+        @push_code("IndexGet")
+    }
+
+    visitAstIndexSet(self) {
+        self.lhs.accept(@)
+        self.indexer.accept(@)
+        self.rhs.accept(@)
+        @push_code("IndexSet")
+    }
+
+    visitAstBool(self) { @push_code("PushBool(" + #to_string(self.value) + ")") }
+    visitAstNil(self) { @push_code("PushNil") }
+
+    visitAstGetVar(self) {
+        def local = @get_local(self.value)
+        if local != nil {
+            @push_code("GetLocal(" + #to_string(local) + ")")
+        }
+        if local == nil {
+            #err("not a local, should be class")
+        }
+    }
+    visitAstDef(self) {
+        self.expr.accept(@)
+        @add_local(self.name)
+    }
+    visitAstPlus(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Plus")
+    }
+    visitAstClass(self) {
+        @current_class_name = self.name
+        @current_fields = self.fields
+        def jump = #len(@code)
+        @push_code("Jump()")
+
+
+        if @find_class(self.name) != nil {
+            #err("Class '" + self.name + "' is already defined")
+        }
+
+        def methods = []
+        def i = 0
+        while i < #len(self.methods) {
+            @begin_method()
+            def method = self.methods[i]
+            def j = 0
+            while j < #len(method.params) {
+                @add_local(method.params[j])
+                j = j + 1
+            }
+            def code_start = #len(@code)
+            method.block.accept(@)
+            def cm = CompilerMethod(method.name, code_start)
+            #append(methods, cm)
+            @push_code("PushNil")
+            @push_code("Return")
+            i = i + 1
+            @end_method()
+        }
+        def end = #len(@code)
+        @code[jump] = "Jump(" + #to_string(end) + ")"
+        
+        @current_class_name = nil
+        @current_fields = nil
+
+        def klass = CompilerClass(self.name, self.fields, methods)
+        #append(@classes, klass)
+    }
+    visitAstBlock(self) {
+        @begin_scope()
+        @compile_list(self.stmts)
+        @end_scope()
+    }
+    visitAstReassign(self) {
+        def local = @get_local(self.name)
+        if local == nil {
+            #err("Could not find variable: " + self.name)
+        }
+        self.expr.accept(@)
+        @push_code("SetLocal(" + #to_string(local) + ")")
+    }
+    visitAstInstance(self) {
+        def klass = @find_class(self.name)
+        if klass == nil {
+            #err("Could not find class: " + self.name)
+        }
+        if #len(klass.fields) != #len(self.args) {
+            #err("Arity does not match")
+        }
+
+        def fields_rev = []
+
+        def i = #len(klass.fields) - 1
+        while i >= 0 {
+            #append(fields_rev, klass.fields[i])
+            i = i - 1
+        }
+        def names = []
+        def starts = []
+        i = 0
+        while i < #len(klass.methods) {
+            #append(names, klass.methods[i].name)
+            #append(starts, klass.methods[i].code_start)
+            i = i + 1
+        }
+
+        @compile_list(self.args)
+
+        @push_code("Instance(" + #to_string(fields_rev) + ", " + #to_string(names) + ", " + #to_string(starts) + ")")
+    }
+    visitAstNative(self) {
+        def fn_info = @native(self.name)
+        if self.name != "print" and #len(self.args) != fn_info[1] {
+            #err("arity does not match")
+        }
+        @compile_list(self.args)
+        if self.name == "print" {
+            @push_code("Print(" + #to_string(#len(self.args)) + ")")
+        }
+        if self.name != "print" {
+            @push_code("Native(" + #to_string(fn_info[1]) + ")")
+        }
+    }
+    visitAstMethod(self) {
+        if self.lhs != nil {
+            self.lhs.accept(@)
+        }
+        if self.lhs == nil {
+            @push_code("PushSelf")
+        }
+        @compile_list(self.args)
+        @push_code("Call(" + self.name + ", " + #to_string(#len(self.args) + 1) + ")")
+    }
+    visitAstPop(self) {
+        self.expr.accept(@)
+        @push_code("Pop")
+    }
+    visitAstEqualEqual(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Equals")
+    }
+    visitAstIf(self) {
+        self.condition.accept(@)
+        def skip_jump = #len(@code)
+        @push_code("TEMP")
+        self.block.accept(@)
+        def end = #len(@code)
+        @code[skip_jump] = "JumpIfFalse(" + #to_string(end) + ")"
+    }
+    visitAstReturn(self) {
+        self.expr.accept(@)
+        @push_code("Return")
+    }
+    visitAstWhile(self) {
+        def loop_start = #len(@code)
+        self.condition.accept(@)
+        def exit_jump = #len(@code)
+        @push_code("JumpIfFalse()")
+        self.block.accept(@)
+        @push_code("Jump(" + #to_string(loop_start) + ")")
+        @code[exit_jump] = "JumpIfFalse(" + #to_string(#len(@code)) + ")"
+    }
+    visitAstOr(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Or")
+    }
+    visitAstAnd(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("And")
+    }
+    visitAstBangEqual(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("NotEquals")
+    }
+    visitAstGreater(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Greater")
+    }
+    visitAstGreaterEqual(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("GreaterEqual")
+    }
+    visitAstLess(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Less")
+    }
+    visitAstLessEqual(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("LessEqual")
+    }
+    visitAstGet(self) {
+        self.lhs.accept(@)
+        @push_code("Get(" + self.field + ")")
+    }
+    visitAstSet(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Set(" + self.field + ")")
+    }
+}

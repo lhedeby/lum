@@ -25,7 +25,8 @@ pub fn run_file(path: &str) {
 
     let bytecode = compiler.code;
     let strings = compiler.strings;
-    println!("\nBytecode: {:?}\n", bytecode);
+    println!("\nBytecode: {:?}", bytecode);
+    println!("Strings: {:?}\n", strings);
     let mut vm = Vm::new(bytecode, strings);
     vm.run(&mut stdout());
     println!("\n");

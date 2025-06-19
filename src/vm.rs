@@ -501,7 +501,7 @@ impl Vm {
                 self.instances[*i]
                     .variables
                     .iter()
-                    .map(|(_idx, x)| self.get_value_as_str(x))
+                    .map(|(key, x)| format!("{}: {}", key,self.get_value_as_str(x)))
                     .collect::<Vec<String>>()
                     .join(", ")
             ),

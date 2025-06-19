@@ -1,4 +1,4 @@
-import { "lexer.lum", "parser.lum", "ast_printer.lum" }
+import { "lexer.lum", "parser.lum", "ast_printer.lum", "compiler.lum" }
 
 
 def input = #read_file("lum/sample.lum")
@@ -13,3 +13,8 @@ def root = parser.parse_root()
 def printer = AstPrinter([], true, "└──", "├──", "│  ")
 
 root.accept(printer)
+
+def compiler = Compiler(nil, nil, nil, nil, nil, nil, nil)
+compiler.init()
+root.accept(compiler)
+#print("Bytecode:", compiler.code)
