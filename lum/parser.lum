@@ -55,19 +55,21 @@ class AstGet(lhs, field) {
     accept(visitor) { return visitor.visitAstGet(@) }
     kind { return "Get" }
 }
+class AstImport(imports) { accept (visitor) { return visitor.visitAstImport(@) } }
 class AstSet(lhs, field, rhs) {
     accept(visitor) { return visitor.visitAstSet(@) }
     kind { return "Set" }
 }
-class AstGetSelf() { accept(visitor) { return visitor.visitAstSet(@) } }
+class AstGetSelf() { accept(visitor) { return visitor.visitAstGetSelf(@) } }
 
 
 class Method(name, params, block) {}
 
-class Parser(lexer) {
+class Parser(lexer, file) {
     consume(kind) {
         def token = @lexer.next()
         if kind != token.kind {
+            #print("token", token)
             #err("expected " + #to_string(kind) + " but got " + #to_string(token.kind))
         }
     }
@@ -103,6 +105,11 @@ class Parser(lexer) {
         #err("field")
     }
 
+    grouping {
+        def node = @expr()
+        @consume(Kind.RightParen())
+        return node
+    }
 
 
     parse_prefix() {
@@ -121,7 +128,7 @@ class Parser(lexer) {
             return @field()
         }
         if token.kind == Kind.Hash() { return @native() }
-        if token.kind == Kind.LeftParen() { #err("LeftParen") }
+        if token.kind == Kind.LeftParen() { return @grouping() }
         #print("token", token)
         #err("parse prefix")
     }
@@ -187,7 +194,6 @@ class Parser(lexer) {
                 lhs = @call(lhs)
             }
             if token.kind == Kind.LeftBracket() {
-                #print("here!")
                 @consume(Kind.LeftBracket())
                 lhs = @index(lhs)
             }
@@ -326,9 +332,16 @@ class Parser(lexer) {
             return AstSetField(name, @expr())
         }
         if next.kind == Kind.LeftParen() {
-            #print("here?")
             return AstPop(@call(AstGetField(name)))
         }
+        if next.kind == Kind.LeftBracket() {
+            def indexer = @expr()
+            @consume(Kind.RightBracket())
+            @consume(Kind.Equal())
+            def rhs = @expr()
+            return AstIndexSet(AstGetField(name), indexer, rhs)
+        }
+        #print("next ", next)
         #err("todo: stmt_set_field")
     }
 
@@ -376,6 +389,9 @@ class Parser(lexer) {
             @consume(Kind.Hash())
             return AstPop(@native())
         }
+        if token.kind == Kind.Import() { return @stmt_import() }
+        #print("token", token)
+
         #err("stmt")
     }
 
@@ -388,5 +404,27 @@ class Parser(lexer) {
         return AstRoot(root_list)
     }
 
+    stmt_import {
+        @consume(Kind.Import())
+        @consume(Kind.LeftBrace())
+        def imports = []
+        def token = @lexer.next()
 
+        while token.kind != Kind.RightBrace() {
+            if token.kind == Kind.String() {
+                def buf = ""
+                def split = #split(@file, "/")
+                def i = 0
+                while i < (#len(split) - 1) {
+                    buf = buf + split[i] + "/"
+                    i = i + 1
+                }
+
+                buf = buf + #split(token.value, "\"")[0]
+                #append(imports, buf)
+            }
+            token = @lexer.next()
+        }
+        return AstImport(imports)
+    }
 }

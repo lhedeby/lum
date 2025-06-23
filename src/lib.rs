@@ -1,4 +1,4 @@
-use std::{io::{stdout, Write}, time::Instant};
+use std::{fs, io::{stdout, Write}, time::Instant};
 
 use compiler::Compiler;
 use parser::Parser;
@@ -26,7 +26,15 @@ pub fn run_file(path: &str) {
     let bytecode = compiler.code;
     let strings = compiler.strings;
     println!("\nBytecode: {:?}", bytecode);
+    fs::write("test.l", bytecode.iter().map(|x| format!("{:?}", x)).collect::<Vec<String>>().join("\n")).unwrap();
+    // for b in &bytecode {
+    //     println!("{:?}", b)
+    // }
     println!("Strings: {:?}\n", strings);
+    //fs::write("test", bytecode.iter().map(|x| format!("{:?}", x).as_bytes()).collect::<Vec<_>>());
+
+
+    
     let mut vm = Vm::new(bytecode, strings);
     vm.run(&mut stdout());
     println!("\n");

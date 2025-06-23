@@ -1,20 +1,33 @@
-import { "lexer.lum", "parser.lum", "ast_printer.lum", "compiler.lum" }
+import { "lexer.lum", "parser.lum", "ast_printer.lum", "compiler.lum", "import_resolver.lum" }
 
+def file = #args(0)
 
-def input = #read_file("lum/sample.lum")
+#print("compiling file: ", file)
+
+def input = #read_file(file)
 #print("input:", input)
 
 def lexer = Lexer(input, 0)
 lexer = Peekable(lexer, nil)
 
-def parser = Parser(lexer)
+def parser = Parser(lexer, file)
 def root = parser.parse_root()
 
-def printer = AstPrinter([], true, "└──", "├──", "│  ")
+def import_resolver = ImportResolver()
+root.accept(import_resolver)
+
+def printer = AstPrinter([], true)
 
 root.accept(printer)
 
 def compiler = Compiler(nil, nil, nil, nil, nil, nil, nil)
 compiler.init()
 root.accept(compiler)
+
+def i = 0
+while i < #len(compiler.code) {
+    #print(compiler.code[i])
+    i = i + 1
+}
 #print("Bytecode:", compiler.code)
+#print("strings:", compiler.strings)

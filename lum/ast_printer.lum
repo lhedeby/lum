@@ -1,7 +1,6 @@
-class AstPrinter(indent, is_last, id1, id2, id3) {
+class AstPrinter(indent, is_last) {
 
     print_node(text) {
-        def remove_this = "└├│─"
         def i = 0
         def ind = ""
         while i < #len(@indent) {
@@ -9,10 +8,10 @@ class AstPrinter(indent, is_last, id1, id2, id3) {
             i = i + 1
         }
         if @is_last {
-            #print(ind + "└──", text)
+            #print(ind + "L--", text)
         }
         if !@is_last {
-            #print(ind + "├──", text)
+            #print(ind + "+--", text)
         }
     }
 
@@ -21,7 +20,7 @@ class AstPrinter(indent, is_last, id1, id2, id3) {
             #append(@indent, "    ")
         }
         if !@is_last {
-            #append(@indent, "│   ")
+            #append(@indent, "|   ")
         }
     }
 
@@ -62,6 +61,7 @@ class AstPrinter(indent, is_last, id1, id2, id3) {
         self.expr.accept(@)
         @pop_indent()
     }
+    visitAstGetSelf(self) { @print_node("GetSelf") }
     visitAstFloat(self) { @print_node("Float(" + self.value + ")") }
     visitAstInt(self) {
         @print_node("Int(" + self.value + ")")
@@ -118,6 +118,16 @@ class AstPrinter(indent, is_last, id1, id2, id3) {
     }
     visitAstPlus(self) {
         @print_node("Plus")
+        @add_indent()
+        @is_last = false
+        self.lhs.accept(@)
+        @is_last = true
+        self.rhs.accept(@)
+        @pop_indent()
+    }
+
+    visitAstMinus(self) {
+        @print_node("Minus")
         @add_indent()
         @is_last = false
         self.lhs.accept(@)

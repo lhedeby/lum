@@ -75,6 +75,7 @@ impl<'a> Iterator for Lexer<'a> {
                             match self.chars.next().unwrap() {
                                 '\\' => match self.chars.next().unwrap() {
                                     '"' => buf.push('"'),
+                                    '\\' => buf.push('\\'),
                                     _ => panic!("unrecognized escape character"),
                                 },
                                 c => buf.push(c),

@@ -65,6 +65,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
     }
 
     add_local(name) {
+        def ll = #len(@variables) - 1
         def vars = @variables[#len(@variables)-1]
         def i = 0
         def res = nil
@@ -75,7 +76,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             i = i + 1
         }
         #print("the wierd ll thing probably should not be here")
-        #append(vars, Local(name, @depth, #len(vars)))
+        #append(vars, Local(name, @depth, #len(vars) + ll))
     }
 
     get_local(name) {
@@ -107,6 +108,9 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         if name == "err" { return [4, 1] }
         if name == "append" { return [5, 2] }
         if name == "pop" { return [6, 1] }
+        if name == "compile" { return [7, 2] }
+        if name == "args" { return [8, 1] }
+        if name == "split" { return [9, 2] }
         #err("no native function with name: " + name)
     }
 
@@ -159,15 +163,35 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
     visitAstBool(self) { @push_code("PushBool(" + #to_string(self.value) + ")") }
     visitAstNil(self) { @push_code("PushNil") }
 
+
     visitAstGetVar(self) {
         def local = @get_local(self.value)
         if local != nil {
             @push_code("GetLocal(" + #to_string(local) + ")")
         }
         if local == nil {
-            #err("not a local, should be class")
+            def klass = @find_class(self.value)
+            if klass == nil {
+                #err("class should not be nil")
+            }
+            if #len(klass.fields) != 0 {
+                #err("trying to call class without arguments? todo?")
+            }
+            def method_names = []
+            def method_starts = []
+
+            def i = 0
+            while i < #len(klass.methods) {
+                #append(method_names, klass.methods[i].name)
+                #append(method_starts, klass.methods[i].code_start)
+                i = i + 1
+            }
+            @push_code("Instance([], " + #to_string(method_names) + ", " + #to_string(method_starts) + ")")
         }
     }
+
+    visitAstGetSelf(self) { @push_code("PushSelf") }
+
     visitAstDef(self) {
         self.expr.accept(@)
         @add_local(self.name)
@@ -176,6 +200,12 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         self.lhs.accept(@)
         self.rhs.accept(@)
         @push_code("Plus")
+    }
+
+    visitAstMinus(self) {
+        self.lhs.accept(@)
+        self.rhs.accept(@)
+        @push_code("Minus")
     }
     visitAstClass(self) {
         @current_class_name = self.name
@@ -268,7 +298,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             @push_code("Print(" + #to_string(#len(self.args)) + ")")
         }
         if self.name != "print" {
-            @push_code("Native(" + #to_string(fn_info[1]) + ")")
+            @push_code("Native(" + #to_string(fn_info[0]) + ")")
         }
     }
     visitAstMethod(self) {

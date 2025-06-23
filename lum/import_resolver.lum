@@ -1,0 +1,74 @@
+class ImportResolver() {
+    
+    visitAstRoot(self) {
+        def i = 0
+
+        while i < #len(self.nodes) {
+            #print("while loop: ", i)
+            #print("node:", self.nodes[i])
+            def is_import = self.nodes[i].accept(@)
+            if is_import {
+                #print("its an import!")
+                def imports = []
+                def j = 0
+                while j < #len(self.nodes[i].imports) {
+                    #print("import", self.nodes[i].imports[j])
+                    def file = self.nodes[i].imports[j]
+
+                    def input = #read_file(file)
+                    #print("input:", input)
+
+                    def lexer = Lexer(input, 0)
+                    lexer = Peekable(lexer, nil)
+
+                    def parser = Parser(lexer, file)
+                    def root = parser.parse_root()
+                    #append(imports, root)
+
+                    j = j + 1
+                }
+                self.nodes[i] = AstBlock(imports)
+            }
+            i = i + 1
+        }
+    }
+    visitAstNeg(self) { return false }
+    visitAstNot(self) { return false }
+    visitAstFloat(self) { return false }
+    visitAstInt(self) { return false }
+    visitAstString(self) { return false }
+    visitAstGetField(self) { return false }
+    visitAstSetField(self) { return false }
+    visitAstList(self) { return false }
+    visitAstIndex(self) { return false }
+    visitAstIndexSet(self) { return false }
+    visitAstBool(self) { return false }
+    visitAstNil(self) { return false }
+    visitAstGetVar(self) { return false }
+    visitAstDef(self) { return false }
+    visitAstPlus(self) { return false }
+    visitAstClass(self) { return false }
+    visitAstBlock(self) { return false }
+    visitAstReassign(self) { return false }
+    visitAstInstance(self) { return false }
+    visitAstNative(self) { return false }
+    visitAstMethod(self) { return false }
+    visitAstPop(self) { return false }
+    visitAstEqualEqual(self) { return false }
+    visitAstIf(self) { return false }
+    visitAstReturn(self) { return false }
+    visitAstWhile(self) { return false }
+    visitAstOr(self) { return false }
+    visitAstAnd(self) { return false }
+    visitAstBangEqual(self) { return false }
+    visitAstGreater(self) { return false }
+    visitAstGreaterEqual(self) { return false }
+    visitAstLess(self) { return false }
+    visitAstLessEqual(self) { return false }
+    visitAstGet(self) { return false }
+    visitAstSet(self) { return false }
+    visitAstImport(self) { 
+    #print("visited ast import")
+    return true }
+
+}

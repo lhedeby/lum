@@ -197,8 +197,11 @@ impl Vm {
                             Value::String(s) => {
                                 let content = match std::fs::read_to_string(&self.strings[s]) {
                                     Ok(s) => s,
-                                    Err(e) => format!("Error reading file: {} - {}", self.strings[s], e),
+                                    Err(e) => {
+                                        panic!("Error reading file: {} - {}", self.strings[s], e)
+                                    }
                                 };
+                                println!("read content: {content}");
                                 stack.push(Value::String(self.strings.len()));
                                 self.strings.push(content);
                             }
@@ -229,7 +232,7 @@ impl Vm {
                                     self.lists[l].push(val);
                                     stack.push(Value::Nil)
                                 }
-                                _ => panic!("trying to push to something thats not a list")
+                                _ => panic!("trying to push to something thats not a list"),
                             }
                         }
 
@@ -240,9 +243,38 @@ impl Vm {
                                     let val = self.lists[l].pop().unwrap();
                                     stack.push(val)
                                 }
-                                _ => panic!("trying to push to something thats not a list")
+                                _ => panic!("trying to push to something thats not a list"),
                             }
                         }
+                        7 => match (stack.pop(), stack.pop()) {
+                            (Some(Value::List(l1)), Some(Value::List(l2))) => {
+                                todo!("stuff")
+                            }
+                            _ => panic!("invalid args"),
+                        },
+                        8 => {
+                            let args: Vec<String> = std::env::args().collect();
+                            if let Some(Value::Int(x)) = stack.pop() {
+                                stack.push(Value::String(self.strings.len()));
+                                self.strings.push(args[(x + 1) as usize].clone());
+                            } else {
+                                panic!("invalid args")
+                            }
+                        }
+                        9 => match (stack.pop(), stack.pop()) {
+                            (Some(Value::String(delim)), Some(Value::String(text))) => {
+                                let mut new_list: Vec<Value> = vec![];
+                                for item in self.strings[text].clone().split(&self.strings[delim].to_string()) {
+                                    if !item.is_empty() {
+                                        new_list.push(Value::String(self.strings.len()));
+                                        self.strings.push(item.to_string());
+                                    }
+                                }
+                                stack.push(Value::List(self.lists.len()));
+                                self.lists.push(new_list);
+                            }
+                            _ => panic!("invalid args"),
+                        },
                         _ => panic!("native function {} not found", n),
                     }
                     ip += 1;
@@ -279,7 +311,8 @@ impl Vm {
                             .get(o)
                             .expect("instace out of range")
                             //.variables[f]
-                            .variables.get(f)
+                            .variables
+                            .get(f)
                             .expect(&format!("could not find variable {}", f))
                             .clone(),
                         p => panic!("get must be on instance {:?}", p),
@@ -320,7 +353,8 @@ impl Vm {
                             let iobc = &self.instances[i];
                             // println!("name: {name}");
                             // println!("iovbsc {:?}", iobc);
-                            ip = iobc.methods[name];
+                            ip = *iobc.methods.get(name).expect(&format!("cound not find name on instance - name: {}", name));
+                            // ip = iobc.methods[name];
                         }
                         _ => panic!("not instance"),
                     }
@@ -501,7 +535,7 @@ impl Vm {
                 self.instances[*i]
                     .variables
                     .iter()
-                    .map(|(key, x)| format!("{}: {}", key,self.get_value_as_str(x)))
+                    .map(|(key, x)| format!("{}: {}", key, self.get_value_as_str(x)))
                     .collect::<Vec<String>>()
                     .join(", ")
             ),

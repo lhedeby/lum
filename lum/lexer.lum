@@ -116,7 +116,7 @@ class Lexer(code, p) {
     identifier() {
         def start = @p
         def val = ""
-        while @letter() {
+        while @letter() or @digit() {
             val = val + @code[@p]
             @p = @p + 1
         }
@@ -148,20 +148,37 @@ class Lexer(code, p) {
     }
 
 
-    string() {
-        def start = @p
-        def val = "\""
-        @p = @p + 1
-        while @code[@p] != "\"" {
+string() {
+    def start = @p
+    def val = "\""
+    @p = @p + 1
+
+    while @p < #len(@code) and @code[@p] != "\"" {
+        def test = @code[@p] == "\\"
+        if test {
+            val = val + @code[@p]
+            @p = @p + 1
+            if @p < #len(@code) {
+                val = val + @code[@p]
+                @p = @p + 1
+            }
+        } 
+        if !test {
             val = val + @code[@p]
             @p = @p + 1
         }
+    }
 
+    if @p < #len(@code) {
         val = val + "\""
         @p = @p + 1
-        def end = @p
-        return Token(val, start, end, Kind.String())
     }
+
+    def end = @p
+    return Token(val, start, end, Kind.String())
+}
+
+
 
     single_char()  {
         def a = Kind.from_str(@code[@p])
