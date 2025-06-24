@@ -201,7 +201,6 @@ impl Vm {
                                         panic!("Error reading file: {} - {}", self.strings[s], e)
                                     }
                                 };
-                                println!("read content: {content}");
                                 stack.push(Value::String(self.strings.len()));
                                 self.strings.push(content);
                             }
@@ -247,8 +246,21 @@ impl Vm {
                             }
                         }
                         7 => match (stack.pop(), stack.pop()) {
-                            (Some(Value::List(l1)), Some(Value::List(l2))) => {
-                                todo!("stuff")
+                            (Some(Value::List(l)), Some(Value::String(path))) => {
+                                std::fs::write(
+                                    &self.strings[path],
+                                    self.lists[l]
+                                        .iter()
+                                        .map(|x| self.get_value_as_str(x))
+                                        .collect::<Vec<String>>()
+                                        .join("\n"),
+                                )
+                                .unwrap();
+                                stack.push(Value::Nil)
+                            }
+                            (Some(Value::String(s)), Some(Value::String(path))) => {
+                                std::fs::write(&self.strings[path], &self.strings[s]).unwrap();
+                                stack.push(Value::Nil)
                             }
                             _ => panic!("invalid args"),
                         },
@@ -264,7 +276,10 @@ impl Vm {
                         9 => match (stack.pop(), stack.pop()) {
                             (Some(Value::String(delim)), Some(Value::String(text))) => {
                                 let mut new_list: Vec<Value> = vec![];
-                                for item in self.strings[text].clone().split(&self.strings[delim].to_string()) {
+                                for item in self.strings[text]
+                                    .clone()
+                                    .split(&self.strings[delim].to_string())
+                                {
                                     if !item.is_empty() {
                                         new_list.push(Value::String(self.strings.len()));
                                         self.strings.push(item.to_string());
@@ -353,7 +368,10 @@ impl Vm {
                             let iobc = &self.instances[i];
                             // println!("name: {name}");
                             // println!("iovbsc {:?}", iobc);
-                            ip = *iobc.methods.get(name).expect(&format!("cound not find name on instance - name: {}", name));
+                            ip = *iobc.methods.get(name).expect(&format!(
+                                "cound not find name on instance - name: {}",
+                                name
+                            ));
                             // ip = iobc.methods[name];
                         }
                         _ => panic!("not instance"),
@@ -529,7 +547,7 @@ impl Vm {
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
-            Value::String(s) => format!("{}", self.strings[*s]),
+            Value::String(s) => self.strings[*s].to_string(),
             Value::Instance(i) => format!(
                 "{{{}}}",
                 self.instances[*i]

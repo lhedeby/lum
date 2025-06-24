@@ -374,7 +374,6 @@ class Parser(lexer, file) {
         if token.kind == Kind.Class() { return @stmt_class() }
         if token.kind == Kind.Identifier() {
             def expr = @expr()
-            #print("todo: should pop if method instance or get", expr)
             def kind = expr.kind()
             if kind == "Method" or kind == "Instance" or kind == "Get" {
                 return AstPop(expr)

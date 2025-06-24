@@ -75,7 +75,6 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             }
             i = i + 1
         }
-        #print("the wierd ll thing probably should not be here")
         #append(vars, Local(name, @depth, #len(vars) + ll))
     }
 
@@ -108,7 +107,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         if name == "err" { return [4, 1] }
         if name == "append" { return [5, 2] }
         if name == "pop" { return [6, 1] }
-        if name == "compile" { return [7, 2] }
+        if name == "write_file" { return [7, 2] }
         if name == "args" { return [8, 1] }
         if name == "split" { return [9, 2] }
         #err("no native function with name: " + name)

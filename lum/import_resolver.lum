@@ -4,11 +4,8 @@ class ImportResolver() {
         def i = 0
 
         while i < #len(self.nodes) {
-            #print("while loop: ", i)
-            #print("node:", self.nodes[i])
             def is_import = self.nodes[i].accept(@)
             if is_import {
-                #print("its an import!")
                 def imports = []
                 def j = 0
                 while j < #len(self.nodes[i].imports) {
@@ -16,7 +13,6 @@ class ImportResolver() {
                     def file = self.nodes[i].imports[j]
 
                     def input = #read_file(file)
-                    #print("input:", input)
 
                     def lexer = Lexer(input, 0)
                     lexer = Peekable(lexer, nil)
@@ -67,8 +63,5 @@ class ImportResolver() {
     visitAstLessEqual(self) { return false }
     visitAstGet(self) { return false }
     visitAstSet(self) { return false }
-    visitAstImport(self) { 
-    #print("visited ast import")
-    return true }
-
+    visitAstImport(self) { return true }
 }

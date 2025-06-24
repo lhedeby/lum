@@ -14,7 +14,6 @@ impl Parser<'_> {
     pub fn parse_file(src_file: &str) -> Node {
         match std::fs::read_to_string(src_file) {
             Ok(content) => {
-                println!("read conent in rust: {}", content);
                 let mut parser = Parser {
                     lexer: Lexer::new(&content).peekable(),
                     src: src_file,
@@ -43,7 +42,6 @@ impl Parser<'_> {
     }
 
     fn stmt(&mut self) -> Node {
-        println!("next token: {:?}", self.lexer.peek());
         if let Some(token) = self.lexer.peek() {
             match token {
                 Token::LeftBrace => self.block(),

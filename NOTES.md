@@ -22,3 +22,6 @@ class Foo() {
     }
 }
 ```
+
+## to test memory alloc
+➜  /usr/bin/time -v target/release/luma lum/main.lum

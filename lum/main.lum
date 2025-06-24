@@ -5,7 +5,6 @@ def file = #args(0)
 #print("compiling file: ", file)
 
 def input = #read_file(file)
-#print("input:", input)
 
 def lexer = Lexer(input, 0)
 lexer = Peekable(lexer, nil)
@@ -18,16 +17,13 @@ root.accept(import_resolver)
 
 def printer = AstPrinter([], true)
 
-root.accept(printer)
+if true == false {
+    root.accept(printer)
+}
 
 def compiler = Compiler(nil, nil, nil, nil, nil, nil, nil)
 compiler.init()
 root.accept(compiler)
 
-def i = 0
-while i < #len(compiler.code) {
-    #print(compiler.code[i])
-    i = i + 1
-}
-#print("Bytecode:", compiler.code)
-#print("strings:", compiler.strings)
+#write_file("lum_out.l", compiler.code)
+#write_file("lum_out_strings.l", compiler.strings)

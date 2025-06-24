@@ -291,7 +291,7 @@ impl Compiler {
                     "err" => (4, 1),
                     "append" => (5, 2),
                     "pop" => (6, 1),
-                    "compile" => (7, 2),
+                    "write_file" => (7, 2),
                     "args" => (8, 1),
                     "split" => (9, 2),
                     _ => panic!("no native function, {}", name),
