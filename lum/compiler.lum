@@ -78,6 +78,18 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         #append(vars, Local(name, @depth, #len(vars) + ll))
     }
 
+    list_to_string(list) {
+        def i = 0
+        def res = ""
+        def delim = ""
+        while i < #len(list) {
+            res = res + delim + #to_string(list[i])
+            i = i + 1
+            delim = ","
+        }
+        return res
+    }
+
     get_local(name) {
         def vars = @variables[#len(@variables)-1]
         def i = 0
@@ -126,24 +138,24 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         self.expr.accept(@)
         @push_code("Not")
     }
-    visitAstFloat(self) { @push_code("PushFloat(" + #to_string(self.value) + ")") }
-    visitAstInt(self) { @push_code("PushInt(" + #to_string(self.value) + ")") }
+    visitAstFloat(self) { @push_code("PushFloat|" + #to_string(self.value)) }
+    visitAstInt(self) { @push_code("PushInt|" + #to_string(self.value)) }
 
     visitAstString(self) {
-        @push_code("PushString(" + #to_string(#len(@strings)) + ")")
+        @push_code("PushString|" + #to_string(#len(@strings)))
         #append(@strings, self.value)
     }
 
-    visitAstGetField(self) { @push_code("GetField(" + self.value + ")") }
+    visitAstGetField(self) { @push_code("GetField|" + self.value) }
 
     visitAstSetField(self) {
         self.expr.accept(@)
-        @push_code("SetField(" + self.name + ")")
+        @push_code("SetField|" + self.name)
     }
 
     visitAstList(self) {
         @compile_list(self.items)
-        @push_code("List(" + #to_string(#len(self.items)) + ")")
+        @push_code("List|" + #to_string(#len(self.items)))
     }
 
     visitAstIndex(self) {
@@ -159,14 +171,14 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         @push_code("IndexSet")
     }
 
-    visitAstBool(self) { @push_code("PushBool(" + #to_string(self.value) + ")") }
+    visitAstBool(self) { @push_code("PushBool|" + #to_string(self.value)) }
     visitAstNil(self) { @push_code("PushNil") }
 
 
     visitAstGetVar(self) {
         def local = @get_local(self.value)
         if local != nil {
-            @push_code("GetLocal(" + #to_string(local) + ")")
+            @push_code("GetLocal|" + #to_string(local))
         }
         if local == nil {
             def klass = @find_class(self.value)
@@ -185,7 +197,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
                 #append(method_starts, klass.methods[i].code_start)
                 i = i + 1
             }
-            @push_code("Instance([], " + #to_string(method_names) + ", " + #to_string(method_starts) + ")")
+            @push_code("Instance||" + @list_to_string(method_names) + "|" + @list_to_string(method_starts))
         }
     }
 
@@ -237,7 +249,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             @end_method()
         }
         def end = #len(@code)
-        @code[jump] = "Jump(" + #to_string(end) + ")"
+        @code[jump] = "Jump|" + #to_string(end)
         
         @current_class_name = nil
         @current_fields = nil
@@ -256,7 +268,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             #err("Could not find variable: " + self.name)
         }
         self.expr.accept(@)
-        @push_code("SetLocal(" + #to_string(local) + ")")
+        @push_code("SetLocal|" + #to_string(local))
     }
     visitAstInstance(self) {
         def klass = @find_class(self.name)
@@ -285,7 +297,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
 
         @compile_list(self.args)
 
-        @push_code("Instance(" + #to_string(fields_rev) + ", " + #to_string(names) + ", " + #to_string(starts) + ")")
+        @push_code("Instance|" + @list_to_string(fields_rev) + "|" + @list_to_string(names) + "|" + @list_to_string(starts))
     }
     visitAstNative(self) {
         def fn_info = @native(self.name)
@@ -294,10 +306,10 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         }
         @compile_list(self.args)
         if self.name == "print" {
-            @push_code("Print(" + #to_string(#len(self.args)) + ")")
+            @push_code("Print|" + #to_string(#len(self.args)))
         }
         if self.name != "print" {
-            @push_code("Native(" + #to_string(fn_info[0]) + ")")
+            @push_code("Native|" + #to_string(fn_info[0]))
         }
     }
     visitAstMethod(self) {
@@ -308,7 +320,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
             @push_code("PushSelf")
         }
         @compile_list(self.args)
-        @push_code("Call(" + self.name + ", " + #to_string(#len(self.args) + 1) + ")")
+        @push_code("Call|" + self.name + "|" + #to_string(#len(self.args) + 1))
     }
     visitAstPop(self) {
         self.expr.accept(@)
@@ -325,7 +337,7 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         @push_code("TEMP")
         self.block.accept(@)
         def end = #len(@code)
-        @code[skip_jump] = "JumpIfFalse(" + #to_string(end) + ")"
+        @code[skip_jump] = "JumpIfFalse|" + #to_string(end)
     }
     visitAstReturn(self) {
         self.expr.accept(@)
@@ -337,8 +349,8 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
         def exit_jump = #len(@code)
         @push_code("JumpIfFalse()")
         self.block.accept(@)
-        @push_code("Jump(" + #to_string(loop_start) + ")")
-        @code[exit_jump] = "JumpIfFalse(" + #to_string(#len(@code)) + ")"
+        @push_code("Jump|" + #to_string(loop_start))
+        @code[exit_jump] = "JumpIfFalse|" + #to_string(#len(@code))
     }
     visitAstOr(self) {
         self.lhs.accept(@)
@@ -377,11 +389,11 @@ class Compiler(code, strings, variables, depth, classes, current_fields, current
     }
     visitAstGet(self) {
         self.lhs.accept(@)
-        @push_code("Get(" + self.field + ")")
+        @push_code("Get|" + self.field)
     }
     visitAstSet(self) {
         self.lhs.accept(@)
         self.rhs.accept(@)
-        @push_code("Set(" + self.field + ")")
+        @push_code("Set|" + self.field)
     }
 }

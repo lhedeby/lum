@@ -150,13 +150,12 @@ class Lexer(code, p) {
 
 string() {
     def start = @p
-    def val = "\""
+    def val = ""
     @p = @p + 1
 
     while @p < #len(@code) and @code[@p] != "\"" {
         def test = @code[@p] == "\\"
         if test {
-            val = val + @code[@p]
             @p = @p + 1
             if @p < #len(@code) {
                 val = val + @code[@p]
@@ -170,7 +169,6 @@ string() {
     }
 
     if @p < #len(@code) {
-        val = val + "\""
         @p = @p + 1
     }
 

@@ -1,7 +1,11 @@
-
-
 def foo = []
 #print(foo)
 #append(foo, 123)
 #append(foo, "a string")
 #print(foo)
+
+def i = 0
+while i < 10 {
+    #print("i is: ", i)
+    i = i + 1
+}
