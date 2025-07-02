@@ -10,7 +10,7 @@ time to time.
 ## Installation and usage
 
 ## Lum examples
-```
+```java
 #print("hash tags are used to call built-in functions")
     
 class Foo {
