@@ -25,5 +25,13 @@ def compiler = Compiler(nil, nil, nil, nil, nil, nil, nil)
 compiler.init()
 root.accept(compiler)
 
+def res = [#len(compiler.strings)]
+#print("first")
+res = res + compiler.strings
+#print("first2")
+res = res + compiler.code
+
+
 #write_file("lum_out.l", compiler.code)
 #write_file("lum_out_strings.l", compiler.strings)
+#write_file("test.l", res)

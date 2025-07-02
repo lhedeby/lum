@@ -1,13 +1,4 @@
-# Luma
-
-## Types
-- int
-- str
-- float
-- arr
-- bool
-
-
+# Lum
 
 ## classes and methods without params dont need paren
 
@@ -24,4 +15,4 @@ class Foo() {
 ```
 
 ## to test memory alloc
-➜  /usr/bin/time -v target/release/luma lum/main.lum
+➜  /usr/bin/time -v target/release/lum lum/main.lum

@@ -1,7 +1,10 @@
+class foo {
+    bar {
+    }
+}
 
-def test = "hel\"lo"
 
-#print("test: ", test)
+foo.bar()
 
 
 

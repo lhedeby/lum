@@ -1,5 +1,3 @@
-// use std::str::FromStr;
-
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -39,6 +37,10 @@ pub enum OpCode {
     IndexSet,
     PushSelf,
     Print(usize),
+}
+
+impl OpCode {
+
 }
 
 #[derive(Debug)]

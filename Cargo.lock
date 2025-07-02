@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "luma"
+name = "lum"
 version = "0.1.0"

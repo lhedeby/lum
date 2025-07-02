@@ -18,8 +18,6 @@ struct InstanceObj {
 
 struct CallFrame {
     return_pos: usize,
-    // is this needed?
-    // arity: usize,
     stack_offset: usize,
 }
 
@@ -116,7 +114,13 @@ impl Vm {
                             stack.push(Value::String(self.strings.len()));
                             self.strings.push(new_string);
                         }
-                        _ => panic!("cant add"),
+                        (Value::List(l1), Value::List(l2)) => {
+                            let mut new_list = self.lists[l1].to_vec();
+                            new_list.extend_from_slice(&self.lists[l2]);
+                            stack.push(Value::List(self.lists.len()));
+                            self.lists.push(new_list)
+                        }
+                        (p1, p2) => panic!("cant add {:?} {:?}", p1, p2),
                     }
                     ip += 1;
                 }
